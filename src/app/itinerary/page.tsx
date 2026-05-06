@@ -66,6 +66,15 @@ function ItineraryContent() {
   const [showAuth, setShowAuth] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
+
+  // Fetch saved trip count for the header badge
+  useEffect(() => {
+    if (!user) { setSavedCount(null); return; }
+    supabase.from('saved_trips').select('id', { count: 'exact', head: true }).then(({ count }) => {
+      setSavedCount(count ?? 0);
+    });
+  }, [user, saveStatus]);
 
   // Read query params on mount
   useEffect(() => {
@@ -206,6 +215,12 @@ function ItineraryContent() {
             <p className="text-white/40 text-lg max-w-2xl">
               Tell us your preferences — we&apos;ll recommend the best route, compare travel options, and build a day-by-day plan tailored for you.
             </p>
+            {user && savedCount !== null && savedCount > 0 && (
+              <Link href="/saved-trips" className="inline-flex items-center gap-2 mt-4 bg-white/5 border border-white/10 hover:border-orange-500/30 text-white/60 hover:text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                <Bookmark className="w-3.5 h-3.5 text-orange-400" strokeWidth={2.5} />
+                {savedCount} saved itinerar{savedCount > 1 ? 'ies' : 'y'} · View →
+              </Link>
+            )}
           </motion.div>
         </div>
       </div>
