@@ -103,7 +103,7 @@ export default function Home() {
 
           <motion.div
             variants={fadeUp} initial="hidden" animate="visible" custom={2}
-            className="h-[1.3em] mb-6 overflow-hidden">
+            className="text-5xl sm:text-6xl lg:text-7xl h-[1.3em] mb-6 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.span
                 key={wordIndex}
