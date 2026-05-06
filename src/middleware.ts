@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const SUPABASE_URL = 'https://ibrthfhnjepuzucgxctp.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_xKVV1RBIPd_J0p5yhiPO7w_AXYXvCvO';
+const SUPABASE_URL = 'https://oqamrudznerdfjrjsyej.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xYW1ydWR6bmVyZGZqcmpzeWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODgwODAsImV4cCI6MjA5MzY2NDA4MH0.zqZgZWNbDaQfZ0IqBoaQV412vZaP58obvIumxqtk45Y';
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
