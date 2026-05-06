@@ -12,5 +12,6 @@ export interface SavedTrip {
   duration: number | null;
   budget: 'budget' | 'mid' | 'luxury' | null;
   itinerary: Record<string, unknown>;
+  notes: string | null;
   created_at: string;
 }

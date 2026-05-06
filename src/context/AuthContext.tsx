@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
+  username: string | null;
   loading: boolean;
   signInWithIdentifier: (identifier: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, username: string) => Promise<{ error: string | null; confirmed: boolean }>;
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch username whenever the user changes
+  useEffect(() => {
+    if (!user) { setUsername(null); return; }
+    supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setUsername(data?.username ?? null));
+  }, [user]);
 
   const checkUsernameAvailable = async (username: string): Promise<boolean> => {
     const { data } = await supabase
@@ -105,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, loading,
+      user, session, username, loading,
       signInWithIdentifier,
       signUpWithEmail,
       verifyEmailOtp,

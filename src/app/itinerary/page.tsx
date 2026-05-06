@@ -76,13 +76,26 @@ function ItineraryContent() {
     });
   }, [user, saveStatus]);
 
-  // Read query params on mount
+  // Read query params on mount — also handles ?edit=<tripId>
   useEffect(() => {
     const fromParam = searchParams.get('from');
     const durationParam = searchParams.get('duration');
+    const editId = searchParams.get('edit');
     if (fromParam) setOptions({ originCityId: fromParam });
     if (durationParam) setOptions({ numDays: parseInt(durationParam) || 5 });
-  }, [searchParams, setOptions]);
+    if (editId) {
+      supabase.from('saved_trips').select('itinerary').eq('id', editId).maybeSingle()
+        .then(({ data }) => {
+          if (!data) return;
+          const meta = (data.itinerary as Record<string, unknown>)._meta as
+            { placeIds: string[]; options: Record<string, unknown> } | undefined;
+          if (!meta) return;
+          clearSelection();
+          meta.placeIds.forEach(id => { const p = getPlaceById(id); if (p) addPlace(p); });
+          setOptions(meta.options as Parameters<typeof setOptions>[0]);
+        });
+    }
+  }, [searchParams, setOptions, clearSelection, addPlace]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredPlaces = useMemo(() => {
     const q = placeSearch.trim().toLowerCase();
@@ -177,12 +190,22 @@ function ItineraryContent() {
     setSaveStatus('saving');
     const origin = getOriginById(options.originCityId);
     const title = `${options.numDays}-day trip from ${origin?.name ?? 'home'}: ${itinerary.route.join(' → ')}`;
-    const { error } = await supabase.from('saved_trips').insert({
-      user_id: user.id, title,
-      duration: options.numDays,
-      budget: options.stayType,
-      itinerary: itinerary as unknown as Record<string, unknown>,
-    });
+    // Embed _meta so the trip can be reloaded into the planner for editing
+    const itineraryWithMeta = {
+      ...itinerary,
+      _meta: { placeIds: selectedPlaces.map(p => p.id), options: { ...options } },
+    };
+    const editId = searchParams.get('edit');
+    const { error } = editId
+      ? await supabase.from('saved_trips').update({
+          title, duration: options.numDays, budget: options.stayType,
+          itinerary: itineraryWithMeta as unknown as Record<string, unknown>,
+        }).eq('id', editId)
+      : await supabase.from('saved_trips').insert({
+          user_id: user.id, title,
+          duration: options.numDays, budget: options.stayType,
+          itinerary: itineraryWithMeta as unknown as Record<string, unknown>,
+        });
     setSaveStatus(error ? 'error' : 'saved');
     setTimeout(() => setSaveStatus('idle'), 2500);
   };
@@ -956,7 +979,7 @@ function ItineraryContent() {
                     : 'bg-gradient-to-r from-orange-500 to-amber-400 text-white hover:shadow-[0_0_20px_rgba(249,115,22,0.4)]'}
                   disabled:opacity-60`}>
                 {saveStatus === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} /> : <Bookmark className="w-4 h-4" strokeWidth={2.5} />}
-                {saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error' : 'Save'}
+                {saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error' : searchParams.get('edit') ? 'Update trip' : 'Save'}
               </button>
               {shareMsg && (
                 <div className="absolute -top-12 left-0 right-0 mx-auto bg-[#111113] border border-white/10 text-white text-sm font-bold px-4 py-2 rounded-xl text-center max-w-xs">

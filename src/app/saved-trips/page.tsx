@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bookmark, Trash2, Calendar, Loader2, Sparkles, ArrowRight,
   MapPin, IndianRupee, ChevronDown, Train, Hotel, Utensils,
-  Ticket, Package, Lightbulb, Route,
+  Ticket, Package, Lightbulb, Route, Pencil, StickyNote,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, SavedTrip } from '@/lib/supabase';
 import AuthModal from '@/components/AuthModal';
@@ -28,12 +29,15 @@ const COST_ROWS = [
 ] as const;
 
 export default function SavedTripsPage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValues, setNoteValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user) fetchTrips();
@@ -45,7 +49,12 @@ export default function SavedTripsPage() {
       .from('saved_trips')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && data) setTrips(data as SavedTrip[]);
+    if (!error && data) {
+      setTrips(data as SavedTrip[]);
+      const initial: Record<string, string> = {};
+      (data as SavedTrip[]).forEach(t => { initial[t.id] = t.notes ?? ''; });
+      setNoteValues(initial);
+    }
     setLoading(false);
   };
 
@@ -56,6 +65,24 @@ export default function SavedTripsPage() {
     setTrips(prev => prev.filter(t => t.id !== id));
     if (expandedId === id) setExpandedId(null);
     setDeleting(null);
+  };
+
+  const handleSaveNote = async (id: string) => {
+    const notes = noteValues[id] ?? '';
+    await supabase.from('saved_trips').update({ notes }).eq('id', id);
+    setTrips(prev => prev.map(t => t.id === id ? { ...t, notes } : t));
+    setEditingNoteId(null);
+  };
+
+  const handleEdit = (e: React.MouseEvent, trip: SavedTrip) => {
+    e.stopPropagation();
+    const meta = (trip.itinerary as Record<string, unknown>)._meta;
+    if (!meta) {
+      // Old trip without meta — open planner without pre-fill
+      router.push('/itinerary');
+      return;
+    }
+    router.push(`/itinerary?edit=${trip.id}`);
   };
 
   if (authLoading) {
@@ -184,9 +211,16 @@ export default function SavedTripsPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
+                          onClick={e => handleEdit(e, trip)}
+                          className="w-9 h-9 rounded-xl bg-white/3 hover:bg-orange-500/10 hover:text-orange-400 text-white/20 flex items-center justify-center transition-colors border border-white/5 hover:border-orange-500/20"
+                          title="Edit trip">
+                          <Pencil className="w-4 h-4" strokeWidth={2.2} />
+                        </button>
+                        <button
                           onClick={e => handleDelete(e, trip.id)}
                           disabled={deleting === trip.id}
-                          className="w-9 h-9 rounded-xl bg-white/3 hover:bg-red-500/10 hover:text-red-400 text-white/20 flex items-center justify-center transition-colors border border-white/5 hover:border-red-500/20">
+                          className="w-9 h-9 rounded-xl bg-white/3 hover:bg-red-500/10 hover:text-red-400 text-white/20 flex items-center justify-center transition-colors border border-white/5 hover:border-red-500/20"
+                          title="Delete trip">
                           {deleting === trip.id
                             ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
                             : <Trash2 className="w-4 h-4" strokeWidth={2.2} />}
@@ -286,6 +320,45 @@ export default function SavedTripsPage() {
                               </ul>
                             </div>
                           )}
+
+                          {/* Notes */}
+                          <div>
+                            <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <StickyNote className="w-3.5 h-3.5" strokeWidth={2.5} /> My notes
+                            </p>
+                            {editingNoteId === trip.id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  autoFocus
+                                  rows={3}
+                                  value={noteValues[trip.id] ?? ''}
+                                  onChange={e => setNoteValues(prev => ({ ...prev, [trip.id]: e.target.value }))}
+                                  placeholder="Add notes — things to book, packing list, reminders…"
+                                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/25 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 resize-none transition-all"
+                                />
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleSaveNote(trip.id)}
+                                    className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition-colors">
+                                    Save
+                                  </button>
+                                  <button onClick={() => { setEditingNoteId(null); setNoteValues(prev => ({ ...prev, [trip.id]: trip.notes ?? '' })); }}
+                                    className="px-4 py-1.5 rounded-lg bg-white/5 text-white/50 text-xs font-bold hover:bg-white/10 transition-colors">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={e => { e.stopPropagation(); setEditingNoteId(trip.id); }}
+                                className="w-full text-left px-4 py-3 rounded-xl bg-white/3 border border-white/6 hover:border-orange-500/20 transition-colors group">
+                                {noteValues[trip.id]
+                                  ? <p className="text-sm text-white/60 whitespace-pre-wrap">{noteValues[trip.id]}</p>
+                                  : <p className="text-sm text-white/20 italic flex items-center gap-2">
+                                      <Pencil className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2.2} />
+                                      Click to add notes…
+                                    </p>}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     )}

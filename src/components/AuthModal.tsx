@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Mail, Lock, Loader2, LogIn, UserPlus, ShieldCheck, AtSign, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Lock, Loader2, LogIn, UserPlus, ShieldCheck, AtSign, Eye, EyeOff, KeyRound, MailCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
-type Screen = 'signin' | 'signup' | 'verify';
+type Screen = 'signin' | 'signup' | 'verify' | 'forgot' | 'forgot_sent';
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -154,6 +155,17 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/reset-password`,
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setScreen('forgot_sent');
+  };
+
   // ── username hint ─────────────────────────────────────────────────────
   const usernameHint = () => {
     if (usernameStatus === 'invalid') return <span className="text-red-400">3–20 chars, letters, numbers, underscores only.</span>;
@@ -166,6 +178,65 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const shellCls = "fixed inset-0 z-50 flex items-center justify-center p-4";
   const cardCls = "relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8";
   const closeBtnCls = "absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors";
+
+  // ── forgot password screen ────────────────────────────────────────────
+  if (screen === 'forgot') {
+    return (
+      <div className={shellCls}>
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className={cardCls}>
+          <button onClick={onClose} className={closeBtnCls}><X className="w-4 h-4" strokeWidth={2.5} /></button>
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-[0_0_20px_rgba(249,115,22,0.4)] mb-4">
+              <KeyRound className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-white">Reset your password</h2>
+            <p className="text-white/40 text-sm mt-1">Enter your email and we&apos;ll send a reset link.</p>
+          </div>
+          {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-400">{error}</div>}
+          <form onSubmit={handleForgotPassword} className="space-y-3">
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+              <input type="email" placeholder="Your email address" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all" />
+            </div>
+            <button type="submit" disabled={loading || !email}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_24px_rgba(249,115,22,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} /> : <KeyRound className="w-4 h-4" strokeWidth={2.5} />}
+              Send reset link
+            </button>
+          </form>
+          <p className="mt-4 text-center text-sm text-white/40">
+            <button onClick={() => switchScreen('signin')} className="font-bold text-orange-400 hover:underline">Back to sign in</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'forgot_sent') {
+    return (
+      <div className={shellCls}>
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className={cardCls}>
+          <button onClick={onClose} className={closeBtnCls}><X className="w-4 h-4" strokeWidth={2.5} /></button>
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg mb-5">
+              <MailCheck className="w-7 h-7 text-white" strokeWidth={2} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-white mb-2">Check your inbox</h2>
+            <p className="text-white/50 text-sm leading-relaxed mb-1">We sent a password reset link to</p>
+            <p className="font-bold text-white mb-6">{email}</p>
+            <p className="text-xs text-white/30 mb-5">Click the link in the email to set a new password. Check spam if you don&apos;t see it.</p>
+            <button onClick={() => switchScreen('signin')}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-extrabold text-sm transition-all">
+              <LogIn className="w-4 h-4" strokeWidth={2.5} /> Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── verify screen ─────────────────────────────────────────────────────
   if (screen === 'verify') {
@@ -313,6 +384,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               : <LogIn className="w-4 h-4" strokeWidth={2.5} />}
             Sign in
           </button>
+          <p className="text-center text-sm text-white/40 pt-1">
+            <button type="button" onClick={() => { setError(null); setScreen('forgot'); }}
+              className="font-bold text-orange-400 hover:underline">
+              Forgot password?
+            </button>
+          </p>
         </form>
       )}
 

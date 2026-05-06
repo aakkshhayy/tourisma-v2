@@ -10,7 +10,7 @@ import AuthModal from '@/components/AuthModal';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, username, signOut } = useAuth();
   const selectedPlaces = useItineraryStore(s => s.selectedPlaces);
   const [showAuth, setShowAuth] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -65,10 +65,10 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold text-white transition-all"
                   >
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center text-xs font-extrabold text-white">
-                      {(user.email ?? user.phone ?? 'U')[0].toUpperCase()}
+                      {(username ?? user.email ?? 'U')[0].toUpperCase()}
                     </div>
                     <span className="hidden sm:block max-w-[120px] truncate text-white/80 text-xs">
-                      {user.email ?? user.phone}
+                      {username ? `@${username}` : (user.email ?? user.phone)}
                     </span>
                     <ChevronDown className={`w-3.5 h-3.5 text-white/40 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} strokeWidth={2.5} />
                   </button>
