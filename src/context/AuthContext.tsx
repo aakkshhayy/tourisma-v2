@@ -10,7 +10,7 @@ interface AuthContextValue {
   loading: boolean;
   signInWithIdentifier: (identifier: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, username: string) => Promise<{ error: string | null; confirmed: boolean }>;
-  verifyEmailOtp: (email: string, token: string) => Promise<{ error: string | null }>;
+  verifyEmailOtp: (email: string, token: string, username: string) => Promise<{ error: string | null }>;
   checkUsernameAvailable: (username: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
@@ -45,20 +45,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUpWithEmail = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        // username stored in metadata — a DB trigger picks it up to create the profile row
-        data: { username: username.toLowerCase() },
-      },
-    });
+    // Final server-side uniqueness check before creating the auth user
+    const available = await checkUsernameAvailable(username);
+    if (!available) return { error: 'That username was just taken — please choose another.', confirmed: false };
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
     return { error: error?.message ?? null, confirmed: !!data.session };
   };
 
-  const verifyEmailOtp = async (email: string, token: string) => {
+  // username is passed here so the profile row is only written after the user
+  // proves they own the email — no ghost records on failed/abandoned signups
+  const verifyEmailOtp = async (email: string, token: string, username: string) => {
     const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
-    return { error: error?.message ?? null };
+    if (error) return { error: error.message };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({ id: user.id, username: username.toLowerCase() });
+      if (profileError) {
+        if (profileError.code === '23505')
+          return { error: 'That username was just taken — please sign in and pick a new one.' };
+        return { error: profileError.message };
+      }
+    }
+    return { error: null };
   };
 
   // Accepts email address OR username

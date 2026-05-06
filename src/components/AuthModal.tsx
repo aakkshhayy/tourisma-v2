@@ -145,7 +145,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     const token = otp.join('');
     if (token.length < 6) return;
     setLoading(true); setError(null);
-    const { error } = await verifyEmailOtp(email, token);
+    const { error } = await verifyEmailOtp(email, token, username);
     if (error) {
       setError('Invalid or expired code. Check your inbox and try again.');
       setLoading(false);
