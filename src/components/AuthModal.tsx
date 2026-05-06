@@ -163,25 +163,17 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     return null;
   };
 
-  // ── shared shell ──────────────────────────────────────────────────────
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors">
-          <X className="w-4 h-4" strokeWidth={2.5} />
-        </button>
-        {children}
-      </div>
-    </div>
-  );
+  const shellCls = "fixed inset-0 z-50 flex items-center justify-center p-4";
+  const cardCls = "relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8";
+  const closeBtnCls = "absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors";
 
   // ── verify screen ─────────────────────────────────────────────────────
   if (screen === 'verify') {
     return (
-      <Shell>
+      <div className={shellCls}>
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className={cardCls}>
+          <button onClick={onClose} className={closeBtnCls}><X className="w-4 h-4" strokeWidth={2.5} /></button>
         <div className="text-center mb-7">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 shadow-[0_0_24px_rgba(249,115,22,0.4)] mb-4">
             <ShieldCheck className="w-7 h-7 text-white" strokeWidth={2.2} />
@@ -226,7 +218,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             try again
           </button>
         </p>
-      </Shell>
+        </div>
+      </div>
     );
   }
 
@@ -234,7 +227,10 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const isSignIn = screen === 'signin';
 
   return (
-    <Shell>
+    <div className={shellCls}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className={cardCls}>
+        <button onClick={onClose} className={closeBtnCls}><X className="w-4 h-4" strokeWidth={2.5} /></button>
       {/* Header */}
       <div className="mb-6">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-[0_0_20px_rgba(249,115,22,0.4)] mb-4">
@@ -393,6 +389,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           </p>
         </form>
       )}
-    </Shell>
+      </div>
+    </div>
   );
 }
