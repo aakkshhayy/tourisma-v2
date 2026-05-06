@@ -8,8 +8,10 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null; confirmed: boolean }>;
+  signInWithIdentifier: (identifier: string, password: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, username: string) => Promise<{ error: string | null; confirmed: boolean }>;
+  verifyEmailOtp: (email: string, token: string) => Promise<{ error: string | null }>;
+  checkUsernameAvailable: (username: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -33,24 +35,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+  const checkUsernameAvailable = async (username: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.toLowerCase())
+      .maybeSingle();
+    return !data;
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : '' },
+      options: {
+        // username stored in metadata — a DB trigger picks it up to create the profile row
+        data: { username: username.toLowerCase() },
+      },
     });
     return { error: error?.message ?? null, confirmed: !!data.session };
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const verifyEmailOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+    return { error: error?.message ?? null };
+  };
+
+  // Accepts email address OR username
+  const signInWithIdentifier = async (identifier: string, password: string) => {
+    let email = identifier.trim();
+
+    if (!email.includes('@')) {
+      // Username → look up email via a security-definer Postgres function
+      const { data, error } = await supabase.rpc('get_email_by_username', {
+        uname: email.toLowerCase(),
+      });
+      if (error || !data) return { error: 'No account found with that username.' };
+      email = data as string;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      if (error.message.toLowerCase().includes('not confirmed')) {
+        return { error: 'EMAIL_NOT_CONFIRMED' };
+      }
+      if (error.message.toLowerCase().includes('invalid login')) {
+        return { error: 'Incorrect email / username or password.' };
+      }
+      return { error: error.message };
+    }
+    return { error: null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithEmail, signUpWithEmail, signOut }}>
+    <AuthContext.Provider value={{
+      user, session, loading,
+      signInWithIdentifier,
+      signUpWithEmail,
+      verifyEmailOtp,
+      checkUsernameAvailable,
+      signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );

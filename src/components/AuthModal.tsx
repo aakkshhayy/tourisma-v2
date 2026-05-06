@@ -1,28 +1,91 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { X, Mail, Lock, Loader2, LogIn, UserPlus, ShieldCheck, Phone, MailCheck } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Mail, Lock, Loader2, LogIn, UserPlus, ShieldCheck, AtSign, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
-export default function AuthModal({ onClose }: AuthModalProps) {
-  const { signInWithEmail, signUpWithEmail } = useAuth();
+type Screen = 'signin' | 'signup' | 'verify';
 
-  const [tab, setTab] = useState<'email' | 'phone'>('email');
-  const [emailScreen, setEmailScreen] = useState<'signin' | 'signup' | 'confirm'>('signin');
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+function OtpBoxes({
+  otp, onChange, onKeyDown, onPaste, refs, autoFocus,
+}: {
+  otp: string[];
+  onChange: (i: number, val: string) => void;
+  onKeyDown: (i: number, e: React.KeyboardEvent) => void;
+  onPaste: (e: React.ClipboardEvent) => void;
+  refs: React.MutableRefObject<(HTMLInputElement | null)[]>;
+  autoFocus?: boolean;
+}) {
+  return (
+    <div className="flex justify-center gap-2.5" onPaste={onPaste}>
+      {otp.map((digit, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          autoFocus={autoFocus && i === 0}
+          onChange={e => onChange(i, e.target.value)}
+          onKeyDown={e => onKeyDown(i, e)}
+          className={`w-12 h-14 text-center text-2xl font-extrabold rounded-xl border-2 focus:outline-none transition-all bg-white/5
+            ${digit ? 'border-orange-500 text-white' : 'border-white/15 text-white'}
+            focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20`}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function AuthModal({ onClose }: AuthModalProps) {
+  const { signInWithIdentifier, signUpWithEmail, verifyEmailOtp, checkUsernameAvailable } = useAuth();
+
+  const [screen, setScreen] = useState<Screen>('signin');
+
+  // shared fields
+  const [identifier, setIdentifier] = useState(''); // email or username for sign-in
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [phoneStep, setPhoneStep] = useState<'input' | 'otp'>('input');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // username availability
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+
+  // OTP
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── username debounce ──────────────────────────────────────────────────
+  const checkTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const validateUsername = useCallback((val: string) => {
+    if (!val) { setUsernameStatus('idle'); return; }
+    if (!USERNAME_RE.test(val.toLowerCase())) { setUsernameStatus('invalid'); return; }
+    setUsernameStatus('checking');
+    if (checkTimeout.current) clearTimeout(checkTimeout.current);
+    checkTimeout.current = setTimeout(async () => {
+      const available = await checkUsernameAvailable(val);
+      setUsernameStatus(available ? 'available' : 'taken');
+    }, 500);
+  }, [checkUsernameAvailable]);
+
+  useEffect(() => {
+    validateUsername(username);
+    return () => { if (checkTimeout.current) clearTimeout(checkTimeout.current); };
+  }, [username, validateUsername]);
+
+  // ── OTP helpers ───────────────────────────────────────────────────────
   const handleOtpChange = (i: number, val: string) => {
     const digit = val.replace(/\D/g, '').slice(-1);
     const next = [...otp]; next[i] = digit; setOtp(next);
@@ -36,45 +99,37 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
     e.preventDefault();
   };
-  const resetOtp = () => setOtp(['', '', '', '', '', '']);
 
-  const OtpBoxes = ({ autoFocus = false }: { autoFocus?: boolean }) => (
-    <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
-      {otp.map((digit, i) => (
-        <input key={i} ref={el => { otpRefs.current[i] = el; }}
-          type="text" inputMode="numeric" maxLength={1} value={digit}
-          autoFocus={autoFocus && i === 0}
-          onChange={e => handleOtpChange(i, e.target.value)}
-          onKeyDown={e => handleOtpKeyDown(i, e)}
-          className={`w-11 text-center text-xl font-extrabold rounded-xl border-2 focus:outline-none transition-all bg-white/5
-            ${digit ? 'border-orange-500 text-white' : 'border-white/20 text-white'}
-            focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20`}
-          style={{ height: 52 }}
-        />
-      ))}
-    </div>
-  );
+  const resetForm = () => {
+    setIdentifier(''); setEmail(''); setUsername(''); setPassword('');
+    setOtp(['', '', '', '', '', '']); setError(null); setUsernameStatus('idle');
+    setShowPassword(false);
+  };
 
+  const switchScreen = (s: Screen) => { resetForm(); setScreen(s); };
+
+  // ── handlers ──────────────────────────────────────────────────────────
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError(null);
-    const { error } = await signInWithEmail(email, password);
-    if (error) {
-      if (error.toLowerCase().includes('not confirmed')) {
-        setError('Please check your inbox and click the confirmation link we sent you.');
-      } else {
-        setError(error);
-      }
-      setLoading(false);
+    const { error } = await signInWithIdentifier(identifier, password);
+    if (error === 'EMAIL_NOT_CONFIRMED') {
+      // bounce them to verification — we need their email
+      setEmail(identifier.includes('@') ? identifier : '');
+      setScreen('verify');
+    } else if (error) {
+      setError(error);
     } else {
       onClose();
     }
+    setLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (usernameStatus !== 'available') return;
     setLoading(true); setError(null);
-    const { error, confirmed } = await signUpWithEmail(email, password);
+    const { error, confirmed } = await signUpWithEmail(email, password, username);
     if (error) {
       setError(error);
       setLoading(false);
@@ -82,175 +137,262 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       onClose();
     } else {
       setLoading(false);
-      setEmailScreen('confirm');
+      setScreen('verify');
     }
   };
 
-  const handlePhoneSend = async () => {
-    setLoading(true); setError(null);
-    const { error } = await supabase.auth.signInWithOtp({ phone: `+91${phone}` });
-    if (error) { setError(error.message); setLoading(false); }
-    else { resetOtp(); setPhoneStep('otp'); setLoading(false); }
-  };
-
-  const handlePhoneVerify = async () => {
+  const handleVerify = async () => {
     const token = otp.join('');
     if (token.length < 6) return;
     setLoading(true); setError(null);
-    const { error } = await supabase.auth.verifyOtp({ phone: `+91${phone}`, token, type: 'sms' });
-    if (error) { setError(error.message); setLoading(false); } else onClose();
+    const { error } = await verifyEmailOtp(email, token);
+    if (error) {
+      setError('Invalid or expired code. Check your inbox and try again.');
+      setLoading(false);
+    } else {
+      onClose();
+    }
   };
 
-  const switchTab = (t: 'email' | 'phone') => {
-    setTab(t); setError(null); resetOtp();
-    setPhoneStep('input'); setEmailScreen('signin');
+  // ── username hint ─────────────────────────────────────────────────────
+  const usernameHint = () => {
+    if (usernameStatus === 'invalid') return <span className="text-red-400">3–20 chars, letters, numbers, underscores only.</span>;
+    if (usernameStatus === 'checking') return <span className="text-white/40">Checking…</span>;
+    if (usernameStatus === 'taken') return <span className="text-red-400">Username already taken.</span>;
+    if (usernameStatus === 'available') return <span className="text-emerald-400">Username available ✓</span>;
+    return null;
   };
 
-  if (tab === 'phone' && phoneStep === 'otp') {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8">
-          <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors">
-            <X className="w-4 h-4" strokeWidth={2.5} />
-          </button>
-          <div className="text-center mb-7">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg mb-4">
-              <ShieldCheck className="w-7 h-7 text-white" strokeWidth={2.2} />
-            </div>
-            <h2 className="text-2xl font-extrabold text-white">Enter OTP</h2>
-            <p className="text-white/50 text-sm mt-2">
-              We sent a 6-digit code to<br />
-              <span className="font-bold text-white">+91 {phone}</span>
-            </p>
-          </div>
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-400 text-center">{error}</div>
-          )}
-          <OtpBoxes autoFocus />
-          <button onClick={handlePhoneVerify} disabled={loading || otp.some(d => !d)}
-            className="mt-6 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} /> : <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />}
-            Verify & sign in
-          </button>
-          <p className="mt-4 text-center text-xs text-white/40">
-            Wrong number?{' '}
-            <button onClick={() => { setPhoneStep('input'); resetOtp(); setError(null); }}
-              className="font-bold text-orange-400 hover:underline">Go back</button>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (emailScreen === 'confirm') {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
-          <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors">
-            <X className="w-4 h-4" strokeWidth={2.5} />
-          </button>
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg mb-5">
-            <MailCheck className="w-8 h-8 text-white" strokeWidth={2} />
-          </div>
-          <h2 className="text-2xl font-extrabold text-white mb-2">Check your inbox</h2>
-          <p className="text-white/50 text-sm leading-relaxed mb-1">We sent a confirmation link to</p>
-          <p className="font-bold text-white text-base mb-5">{email}</p>
-          <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white/60 leading-relaxed mb-6">
-            Click the <span className="font-bold text-white">Confirm your email</span> button in the email to activate your account. Then come back and sign in.
-          </div>
-          <button
-            onClick={() => { setEmailScreen('signin'); setError(null); }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-extrabold text-sm transition-all">
-            <LogIn className="w-4 h-4" strokeWidth={2.5} />
-            Back to sign in
-          </button>
-          <p className="mt-3 text-xs text-white/30">Didn&apos;t get the email? Check your spam folder.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  // ── shared shell ──────────────────────────────────────────────────────
+  const Shell = ({ children }: { children: React.ReactNode }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
       <div className="relative bg-[#111113] border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-8">
-        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-colors">
           <X className="w-4 h-4" strokeWidth={2.5} />
         </button>
+        {children}
+      </div>
+    </div>
+  );
 
-        <div className="mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-[0_0_20px_rgba(249,115,22,0.4)] mb-4">
-            <LogIn className="w-6 h-6 text-white" strokeWidth={2.5} />
+  // ── verify screen ─────────────────────────────────────────────────────
+  if (screen === 'verify') {
+    return (
+      <Shell>
+        <div className="text-center mb-7">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 shadow-[0_0_24px_rgba(249,115,22,0.4)] mb-4">
+            <ShieldCheck className="w-7 h-7 text-white" strokeWidth={2.2} />
           </div>
-          <h2 className="text-2xl font-extrabold text-white">Sign in to Tourisma</h2>
-          <p className="text-white/40 text-sm mt-1">Save and revisit your itineraries anytime.</p>
-        </div>
-
-        <div className="flex bg-white/5 rounded-xl p-1 mb-5">
-          {(['email', 'phone'] as const).map(t => (
-            <button key={t} onClick={() => switchTab(t)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all
-                ${tab === t ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}>
-              {t === 'email' ? <Mail className="w-4 h-4" strokeWidth={2.2} /> : <Phone className="w-4 h-4" strokeWidth={2.2} />}
-              {t === 'email' ? 'Email' : 'Phone'}
-            </button>
-          ))}
+          <h2 className="text-2xl font-extrabold text-white">Check your inbox</h2>
+          <p className="text-white/50 text-sm mt-2 leading-relaxed">
+            We sent a 6-digit code to<br />
+            <span className="font-bold text-white">{email || 'your email'}</span>
+          </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-400">{error}</div>
-        )}
-
-        {tab === 'email' && (
-          <form onSubmit={emailScreen === 'signin' ? handleSignIn : handleSignUp} className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
-              <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all" />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
-              <input type="password" placeholder={emailScreen === 'signup' ? 'Password (min 6 chars)' : 'Password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all" />
-            </div>
-            <button type="submit" disabled={loading || !email || !password}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
-                : emailScreen === 'signin' ? <LogIn className="w-4 h-4" strokeWidth={2.5} /> : <UserPlus className="w-4 h-4" strokeWidth={2.5} />}
-              {emailScreen === 'signin' ? 'Sign in' : 'Create account'}
-            </button>
-            <p className="text-center text-sm text-white/40 pt-1">
-              {emailScreen === 'signin' ? "Don't have an account?" : 'Already have an account?'}{' '}
-              <button type="button"
-                onClick={() => { setEmailScreen(s => s === 'signin' ? 'signup' : 'signin'); setError(null); }}
-                className="font-bold text-orange-400 hover:underline">
-                {emailScreen === 'signin' ? 'Sign up' : 'Sign in'}
-              </button>
-            </p>
-          </form>
-        )}
-
-        {tab === 'phone' && phoneStep === 'input' && (
-          <div className="space-y-3">
-            <div className="flex rounded-xl border border-white/10 overflow-hidden focus-within:border-orange-500/50 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
-              <span className="flex items-center gap-1.5 pl-4 pr-3 bg-white/5 border-r border-white/10 text-sm font-bold text-white whitespace-nowrap">
-                🇮🇳 +91
-              </span>
-              <input type="tel" placeholder="10-digit mobile number" value={phone}
-                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                className="flex-1 px-4 py-3.5 text-sm font-medium tracking-widest focus:outline-none bg-white/5 text-white placeholder:text-white/30" />
-            </div>
-            <button onClick={handlePhoneSend} disabled={loading || phone.length < 10}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} /> : <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />}
-              Send OTP
-            </button>
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-400 text-center">
+            {error}
           </div>
         )}
+
+        <OtpBoxes
+          otp={otp}
+          onChange={handleOtpChange}
+          onKeyDown={handleOtpKeyDown}
+          onPaste={handleOtpPaste}
+          refs={otpRefs}
+          autoFocus
+        />
+
+        <button
+          onClick={handleVerify}
+          disabled={loading || otp.some(d => !d)}
+          className="mt-6 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_24px_rgba(249,115,22,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          {loading
+            ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+            : <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />}
+          Verify & continue
+        </button>
+
+        <p className="mt-4 text-center text-xs text-white/40">
+          Didn&apos;t get the code? Check your spam folder or{' '}
+          <button
+            onClick={() => { switchScreen('signup'); }}
+            className="font-bold text-orange-400 hover:underline">
+            try again
+          </button>
+        </p>
+      </Shell>
+    );
+  }
+
+  // ── sign-in / sign-up screen ──────────────────────────────────────────
+  const isSignIn = screen === 'signin';
+
+  return (
+    <Shell>
+      {/* Header */}
+      <div className="mb-6">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-[0_0_20px_rgba(249,115,22,0.4)] mb-4">
+          {isSignIn
+            ? <LogIn className="w-6 h-6 text-white" strokeWidth={2.5} />
+            : <UserPlus className="w-6 h-6 text-white" strokeWidth={2.5} />}
+        </div>
+        <h2 className="text-2xl font-extrabold text-white">
+          {isSignIn ? 'Welcome back' : 'Create your account'}
+        </h2>
+        <p className="text-white/40 text-sm mt-1">
+          {isSignIn
+            ? 'Sign in to access your saved itineraries.'
+            : 'Join Tourisma and start planning your India trips.'}
+        </p>
       </div>
-    </div>
+
+      {/* Tab switcher */}
+      <div className="flex bg-white/5 rounded-xl p-1 mb-5">
+        {(['signin', 'signup'] as const).map(s => (
+          <button
+            key={s}
+            onClick={() => switchScreen(s)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all
+              ${screen === s ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}>
+            {s === 'signin'
+              ? <><LogIn className="w-3.5 h-3.5" strokeWidth={2.5} /> Sign in</>
+              : <><UserPlus className="w-3.5 h-3.5" strokeWidth={2.5} /> Sign up</>}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Sign in form */}
+      {isSignIn && (
+        <form onSubmit={handleSignIn} className="space-y-3">
+          <div className="relative">
+            <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+            <input
+              type="text"
+              placeholder="Email or username"
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+              required
+              autoComplete="username"
+              className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="w-full pl-11 pr-12 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+              {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={2.2} /> : <Eye className="w-4 h-4" strokeWidth={2.2} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !identifier || !password}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_24px_rgba(249,115,22,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading
+              ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+              : <LogIn className="w-4 h-4" strokeWidth={2.5} />}
+            Sign in
+          </button>
+        </form>
+      )}
+
+      {/* Sign up form */}
+      {!isSignIn && (
+        <form onSubmit={handleSignUp} className="space-y-3">
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+
+          <div>
+            <div className="relative">
+              <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+              <input
+                type="text"
+                placeholder="Username (e.g. akshay_trips)"
+                value={username}
+                onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                required
+                maxLength={20}
+                autoComplete="username"
+                className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/5 border text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:ring-2 transition-all
+                  ${usernameStatus === 'available' ? 'border-emerald-500/50 focus:ring-emerald-500/20' :
+                    usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-500/50 focus:ring-red-500/20' :
+                    'border-white/10 focus:border-orange-500/50 focus:ring-orange-500/20'}`}
+              />
+            </div>
+            {username && (
+              <p className="mt-1.5 ml-1 text-xs">{usernameHint()}</p>
+            )}
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" strokeWidth={2.2} />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password (min 6 chars)"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="w-full pl-11 pr-12 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+              {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={2.2} /> : <Eye className="w-4 h-4" strokeWidth={2.2} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !email || !password || usernameStatus !== 'available'}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_24px_rgba(249,115,22,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading
+              ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+              : <UserPlus className="w-4 h-4" strokeWidth={2.5} />}
+            Create account
+          </button>
+
+          <p className="text-center text-xs text-white/30 pt-1">
+            We&apos;ll email you a 6-digit code to verify your account.
+          </p>
+        </form>
+      )}
+    </Shell>
   );
 }
