@@ -9,7 +9,8 @@ import {
   Wallet, MapPin, Plus, Check, X, ArrowRight, Lightbulb,
   ChevronLeft, Wand2, Loader2, Download, Share2, Bookmark,
   Search, IndianRupee, Zap, Scale, Trophy, Route, Clock,
-  Utensils, Ticket, Package, Info,
+  Utensils, Ticket, Package, Info, ExternalLink, BedDouble,
+  Navigation, BadgeCheck,
 } from 'lucide-react';
 import { PLACES, STATES, getPlaceById, getStateById } from '@/lib/places';
 import { ORIGIN_CITIES, getOriginById } from '@/lib/origins';
@@ -199,11 +200,11 @@ function ItineraryContent() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
-              Itinerary Builder
+              AI Trip Planner
             </p>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">Plan your trip</h1>
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">Let&apos;s plan your perfect trip</h1>
             <p className="text-white/40 text-lg max-w-2xl">
-              Pick your origin, choose destinations, set preferences. Get routes, day-by-day plans, and real cost estimates instantly.
+              Tell us your preferences — we&apos;ll recommend the best route, compare travel options, and build a day-by-day plan tailored for you.
             </p>
           </motion.div>
         </div>
@@ -497,12 +498,15 @@ function ItineraryContent() {
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" />
               <div className="relative">
                 <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">
-                  <Check className="w-4 h-4" strokeWidth={3} />
-                  Trip ready
+                  <BadgeCheck className="w-4 h-4" strokeWidth={2.5} />
+                  Personalised recommendation
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight mb-3">
-                  Your {options.numDays}-day adventure
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight mb-2">
+                  We&apos;ve planned your {options.numDays}-day adventure
                 </h2>
+                <p className="text-white/40 text-sm mb-4">
+                  Based on your route, group size, and <span className="capitalize text-white/60 font-semibold">{options.stayType}</span> budget — here&apos;s what we recommend.
+                </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/50 mb-5">
                   <span>From {origin?.name ?? '—'}</span>
                   <span>·</span>
@@ -532,6 +536,74 @@ function ItineraryContent() {
                       <span className="bg-orange-500/20 border border-orange-500/30 px-3 py-1.5 rounded-full text-sm font-bold text-orange-300 whitespace-nowrap">{origin.name}</span>
                     </>
                   )}
+                </div>
+              </div>
+            </motion.section>
+
+            {/* ── Decision Intelligence ─────────────────────────── */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+              className="bg-gradient-to-br from-violet-500/8 via-[#111113] to-[#111113] border border-violet-500/20 rounded-2xl p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-violet-400" strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-white">Tourisma Recommends</h2>
+                  <p className="text-white/40 text-sm">We analysed your route — here&apos;s the smart breakdown</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Best route */}
+                <div className="bg-[#0A0A0B] border border-white/8 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                      <Navigation className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">Best Route</span>
+                  </div>
+                  <p className="text-white font-extrabold text-lg mb-1">{itinerary.route.slice(0, 3).join(' → ')}{itinerary.route.length > 3 ? ' …' : ''}</p>
+                  <p className="text-white/40 text-xs leading-relaxed">
+                    Geographically optimised — shortest total distance at <span className="font-bold text-white/70">{itinerary.totalDistanceKm.toLocaleString()} km</span>. Places are clustered by region to minimise backtracking.
+                  </p>
+                </div>
+
+                {/* Cheapest option */}
+                <div className="bg-[#0A0A0B] border border-white/8 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                      <IndianRupee className="w-4 h-4 text-amber-400" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">Most Affordable</span>
+                  </div>
+                  <p className="text-white font-extrabold text-lg mb-1">
+                    ₹{Math.round(itinerary.totalEstimatedCost.total / options.groupSize).toLocaleString()}<span className="text-sm font-semibold text-white/40"> /person</span>
+                  </p>
+                  <p className="text-white/40 text-xs leading-relaxed">
+                    Total trip cost <span className="font-bold text-white/70">₹{itinerary.totalEstimatedCost.total.toLocaleString()}</span> for {options.groupSize} — using <span className="capitalize font-bold text-white/70">{options.stayType}</span> stays and budget-first travel mode selection per leg.
+                  </p>
+                </div>
+
+                {/* Fastest option */}
+                <div className="bg-[#0A0A0B] border border-white/8 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-sky-400" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400">Fastest Option</span>
+                  </div>
+                  <p className="text-white font-extrabold text-lg mb-1">
+                    {Math.floor(itinerary.totalTravelHours)}h {Math.round((itinerary.totalTravelHours % 1) * 60)}m
+                    {itinerary.journey.some(l => l.options.some(o => o.mode === 'flight')) && (
+                      <span className="ml-2 text-xs font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">✈ by flight</span>
+                    )}
+                  </p>
+                  <p className="text-white/40 text-xs leading-relaxed">
+                    {itinerary.journey.some(l => l.options.some(o => o.mode === 'flight'))
+                      ? <>Switching to <span className="font-bold text-white/70">flights</span> on key legs cuts total journey time. We&apos;ve marked the fastest option on each leg below.</>
+                      : <>Each leg uses the <span className="font-bold text-white/70">fastest available mode</span>. Compare train vs cab vs bus options per leg below to see time savings.</>
+                    }
+                  </p>
                 </div>
               </div>
             </motion.section>
@@ -632,7 +704,7 @@ function ItineraryContent() {
                 </div>
                 <div>
                   <h2 className="text-xl font-extrabold text-white">Cost Breakdown</h2>
-                  <p className="text-white/40 text-sm">All-inclusive for your group</p>
+                  <p className="text-white/40 text-sm">Estimated for your group · based on your preferences</p>
                 </div>
               </div>
 
@@ -673,7 +745,7 @@ function ItineraryContent() {
               <div className="mt-5 flex items-start gap-2 bg-white/3 border border-white/8 rounded-xl p-4">
                 <Info className="w-4 h-4 text-white/30 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
                 <p className="text-xs text-white/40 leading-relaxed">
-                  Estimates based on <span className="font-semibold capitalize text-white/60">{options.stayType}</span> travel averages. Actual costs vary by season, booking timing, and shopping. Use as a planning baseline.
+                  We&apos;ve estimated this based on <span className="font-semibold capitalize text-white/60">{options.stayType}</span> travel averages for your group. Actual costs vary by season and booking timing — lock in prices early for best rates.
                 </p>
               </div>
             </motion.section>
@@ -687,8 +759,8 @@ function ItineraryContent() {
                   <Calendar className="w-5 h-5 text-violet-400" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-white">Day-by-day Plan</h2>
-                  <p className="text-white/40 text-sm">{itinerary.days.length} days · {itinerary.route.length} destinations</p>
+                  <h2 className="text-xl font-extrabold text-white">Your Day-by-day Plan</h2>
+                  <p className="text-white/40 text-sm">We&apos;ve structured {itinerary.days.length} days across {itinerary.route.length} destinations</p>
                 </div>
               </div>
 
@@ -764,6 +836,85 @@ function ItineraryContent() {
                 </ul>
               </motion.section>
             )}
+
+            {/* ── Book Now — Conversion Layer ───────────────────── */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+              className="bg-gradient-to-br from-[#0d1117] to-[#111113] border border-white/10 rounded-2xl p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5 text-orange-400" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-white">Ready to book?</h2>
+                  <p className="text-white/40 text-sm">Your plan is ready — take the next step</p>
+                </div>
+              </div>
+              <p className="text-white/30 text-xs mb-6 ml-[52px]">
+                We&apos;ve planned the trip. Now lock in your dates before prices go up.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <a
+                  href={`https://www.makemytrip.com/hotels/hotel-listing/#city=${itinerary.route[0] ?? ''}&checkin=&checkout=`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-4 p-4 bg-white/3 border border-white/8 hover:border-orange-500/40 hover:bg-orange-500/5 rounded-xl transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <BedDouble className="w-5 h-5 text-rose-400" strokeWidth={2.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-white text-sm">Book Hotels</p>
+                    <p className="text-white/40 text-xs mt-0.5">via MakeMyTrip</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0" strokeWidth={2.5} />
+                </a>
+
+                <a
+                  href={`https://www.makemytrip.com/flights/`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-4 p-4 bg-white/3 border border-white/8 hover:border-orange-500/40 hover:bg-orange-500/5 rounded-xl transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Plane className="w-5 h-5 text-sky-400" strokeWidth={2.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-white text-sm">Check Flights</p>
+                    <p className="text-white/40 text-xs mt-0.5">via MakeMyTrip</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0" strokeWidth={2.5} />
+                </a>
+
+                <a
+                  href="https://www.irctc.co.in/nget/train-search"
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-4 p-4 bg-white/3 border border-white/8 hover:border-orange-500/40 hover:bg-orange-500/5 rounded-xl transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Train className="w-5 h-5 text-emerald-400" strokeWidth={2.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-white text-sm">Book Trains</p>
+                    <p className="text-white/40 text-xs mt-0.5">via IRCTC</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0" strokeWidth={2.5} />
+                </a>
+
+                <a
+                  href={`https://www.klook.com/en-IN/search/?query=${encodeURIComponent(itinerary.route[0] ?? 'India')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-4 p-4 bg-white/3 border border-white/8 hover:border-orange-500/40 hover:bg-orange-500/5 rounded-xl transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Ticket className="w-5 h-5 text-violet-400" strokeWidth={2.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-white text-sm">Book Activities</p>
+                    <p className="text-white/40 text-xs mt-0.5">via Klook</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0" strokeWidth={2.5} />
+                </a>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-xs text-white/25">
+                <Info className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2.2} />
+                <span>These links open trusted booking platforms. Tourisma may earn a referral commission at no extra cost to you.</span>
+              </div>
+            </motion.section>
 
             {/* Actions */}
             <div className="relative grid grid-cols-2 sm:grid-cols-5 gap-3">
