@@ -16,10 +16,18 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Supabase fires PASSWORD_RECOVERY when the recovery token in the URL is valid
+    // Listen for PASSWORD_RECOVERY in case the code exchange happens after mount
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true);
     });
+
+    // The Supabase client auto-exchanges the ?code= param during initialization,
+    // before this component mounts, so PASSWORD_RECOVERY may have already fired.
+    // If a session already exists, the exchange is done — show the form.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 

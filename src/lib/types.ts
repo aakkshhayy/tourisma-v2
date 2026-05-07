@@ -25,6 +25,9 @@ export interface TouristPlace {
   coordinates: { lat: number; lng: number };
   emoji: string;
   highlights: string[];
+  aliases?: string[];
+  openMonths?: number[]; // 1=Jan…12=Dec. Absent means open year-round.
+  closedWarning?: string; // shown when visiting in a closed month
 }
 
 export interface StateInfo {
@@ -89,6 +92,8 @@ export interface ItineraryOptions {
   numDays: number;
   originCityId: string;
   optimisation: 'cost' | 'balanced' | 'time';
+  travelMonth: number; // 1=Jan…12=Dec
+  tripType: 'general' | 'pilgrimage' | 'family' | 'honeymoon' | 'solo' | 'friends';
 }
 
 export interface Itinerary {

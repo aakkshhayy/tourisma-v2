@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bookmark, Trash2, Calendar, Loader2, Sparkles, ArrowRight,
   MapPin, IndianRupee, ChevronDown, Train, Hotel, Utensils,
-  Ticket, Package, Lightbulb, Route, Pencil, StickyNote,
+  Ticket, Package, Lightbulb, Route, Pencil, StickyNote, Link2, Share2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -38,6 +38,24 @@ export default function SavedTripsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyLink = (e: React.MouseEvent, tripId: string) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/trip/${tripId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(tripId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  const handleWhatsApp = (e: React.MouseEvent, trip: SavedTrip) => {
+    e.stopPropagation();
+    const itin = trip.itinerary as unknown as Itinerary;
+    const url = `${window.location.origin}/trip/${trip.id}`;
+    const text = `Check out my ${trip.duration ?? ''}d India trip: ${itin?.route?.join(' → ') ?? trip.title}. Total ≈ ₹${itin?.totalEstimatedCost?.total?.toLocaleString() ?? '—'} 🗺️ Planned with Tourisma\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   useEffect(() => {
     if (user) fetchTrips();
@@ -358,6 +376,22 @@ export default function SavedTripsPage() {
                                     </p>}
                               </button>
                             )}
+                          </div>
+
+                          {/* Share */}
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              onClick={e => handleCopyLink(e, trip.id)}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/30 text-white/60 hover:text-white text-xs font-bold transition-all">
+                              <Link2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              {copiedId === trip.id ? 'Link copied!' : 'Copy shareable link'}
+                            </button>
+                            <button
+                              onClick={e => handleWhatsApp(e, trip)}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 text-[#25D366] text-xs font-bold transition-all">
+                              <Share2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              Share on WhatsApp
+                            </button>
                           </div>
                         </div>
                       </motion.div>

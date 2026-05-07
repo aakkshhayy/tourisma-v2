@@ -159,7 +159,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     e.preventDefault();
     setLoading(true); setError(null);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/reset-password`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? (typeof window !== 'undefined' ? window.location.origin : '')}/reset-password`,
     });
     setLoading(false);
     if (error) { setError(error.message); return; }

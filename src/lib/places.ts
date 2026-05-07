@@ -338,6 +338,7 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 19.076, lng: 72.877 },
     emoji: '🌆',
     highlights: ['Gateway of India', 'Marine Drive', 'Dharavi Tour', 'Juhu Beach', 'Street food at Mohammed Ali Road'],
+    aliases: ['Bombay', 'Bambai'],
   },
   {
     id: 'mh_ajanta',
@@ -806,6 +807,7 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 22.572, lng: 88.363 },
     emoji: '🌉',
     highlights: ['Victoria Memorial', 'Howrah Bridge', 'Kalighat Temple', 'Park Street food', 'Kumartuli', 'Tram ride'],
+    aliases: ['Calcutta', 'Cal'],
   },
   {
     id: 'wb_darjeeling',
@@ -1385,6 +1387,7 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 12.971, lng: 77.594 },
     emoji: '🌆',
     highlights: ['Lalbagh Botanical Garden', 'Cubbon Park', 'Tipu Sultan\'s Summer Palace', 'Craft brewery scene', 'Commercial Street shopping', 'Nandi Hills sunrise drive'],
+    aliases: ['Bangalore', 'Bengalooru'],
   },
 
   // ─── TAMIL NADU ──────────────────────────────────────────────────────────────
@@ -1829,6 +1832,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 32.228, lng: 78.073 },
     emoji: '🏔️',
     highlights: ['Key Monastery', 'Chandratal Lake', 'Pin Valley snow leopards', 'Fossil village Langza', 'World\'s highest post office', 'Stargazing at Kaza'],
+    openMonths: [6, 7, 8, 9, 10],
+    closedWarning: 'Spiti Valley is only accessible June–October. The Rohtang Pass and Kunzum Pass close due to heavy snow from November onwards. Do not plan a road trip here in winter.',
   },
   {
     id: 'hp_kasol',
@@ -3958,6 +3963,7 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 25.318, lng: 82.973 },
     emoji: '🪔',
     highlights: ['Ganga aarti at Dashashwamedh', 'Sunrise boat ride', 'Kashi Vishwanath Temple', 'Sarnath Buddhist site', 'Banarasi silk weavers'],
+    aliases: ['Kashi', 'Banaras', 'Benares', 'Benaras'],
   },
   {
     id: 'up_mathura_vrindavan',
@@ -4230,6 +4236,68 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 30.530, lng: 79.566 },
     emoji: '⛷️',
     highlights: ['Auli ski slopes', 'Asia\'s longest cable car', 'Nanda Devi viewpoint', 'Gurso Bugyal trek', 'Artificial snow lake'],
+    openMonths: [1, 2, 3, 4, 5, 6],
+    closedWarning: 'Auli is best for skiing January–March. Heavy snow makes cable car access difficult July–August. The ski season officially runs January to March.',
+  },
+  {
+    id: 'uk_kedarnath',
+    name: 'Kedarnath',
+    state: 'uttarakhand',
+    tagline: 'Highest Jyotirlinga — Char Dham Pilgrimage',
+    description: 'One of the holiest Hindu shrines and a Jyotirlinga, the 8th-century Kedarnath Temple sits at 3,583m amidst snow-capped Himalayan peaks on the banks of the Mandakini river. One of the four Char Dham sites.',
+    category: 'religious',
+    bestTimeToVisit: 'May – June, September – October (temple open)',
+    recommendedDays: 2,
+    nearbyAttractions: ['Vasuki Tal trek', 'Gandhi Sarovar lake', 'Bhairavnath Temple', 'Gaurikund', 'Triyuginarayan Temple'],
+    nearestRailway: { station: 'Rishikesh', distanceKm: 220 },
+    nearestAirport: { airport: 'Jolly Grant (DED)', distanceKm: 240 },
+    travelOptions: [
+      { mode: 'cab', from: 'Rishikesh', to: 'Gaurikund', duration: '8h', approxCost: 6000 },
+      { mode: 'shared_jeep', from: 'Sonprayag', to: 'Gaurikund', duration: '0.5h', approxCost: 100 },
+    ],
+    stayOptions: [
+      { type: 'budget', costPerNight: 600 },
+      { type: 'mid', costPerNight: 2000 },
+      { type: 'luxury', costPerNight: 5000 },
+    ],
+    foodCostPerDay: 400,
+    entryFee: 0,
+    coordinates: { lat: 30.735, lng: 79.067 },
+    emoji: '🛕',
+    highlights: ['Kedarnath Jyotirlinga darshan', 'Himalayan backdrop at sunrise', 'Vasuki Tal trek', 'Gandhi Sarovar', 'Gaurikund hot spring', 'Bhairavnath Temple'],
+    aliases: ['Kedar', 'Kedarnath Dham', 'Char Dham Kedarnath'],
+    openMonths: [5, 6, 9, 10],
+    closedWarning: 'Kedarnath temple is closed November–April due to heavy snowfall. It opens in May (Akshaya Tritiya) and closes in November (Diwali).',
+  },
+  {
+    id: 'uk_badrinath',
+    name: 'Badrinath',
+    state: 'uttarakhand',
+    tagline: 'Abode of Lord Vishnu — Char Dham',
+    description: 'One of the four Char Dham sites and a Panch Badri shrine, the Badrinath Temple at 3,133m is dedicated to Lord Vishnu. Set between the Nar and Narayan mountain ranges beside the Alaknanda river.',
+    category: 'religious',
+    bestTimeToVisit: 'May – June, September – October (temple open)',
+    recommendedDays: 2,
+    nearbyAttractions: ['Mana Village (last Indian village)', 'Vasudhara Falls', 'Satopanth Lake trek', 'Bheem Pul', 'Tapt Kund'],
+    nearestRailway: { station: 'Rishikesh', distanceKm: 295 },
+    nearestAirport: { airport: 'Jolly Grant (DED)', distanceKm: 310 },
+    travelOptions: [
+      { mode: 'cab', from: 'Rishikesh', to: 'Badrinath', duration: '10h', approxCost: 8000 },
+      { mode: 'bus', from: 'Rishikesh', to: 'Badrinath', duration: '12h', approxCost: 900 },
+    ],
+    stayOptions: [
+      { type: 'budget', costPerNight: 600 },
+      { type: 'mid', costPerNight: 2200 },
+      { type: 'luxury', costPerNight: 5500 },
+    ],
+    foodCostPerDay: 400,
+    entryFee: 0,
+    coordinates: { lat: 30.743, lng: 79.493 },
+    emoji: '🛕',
+    highlights: ['Badrinath Vishnu temple darshan', 'Tapt Kund (holy hot spring)', 'Mana — last Indian village', 'Vasudhara Falls', 'Satopanth Lake trek', 'Bheem Pul natural bridge'],
+    aliases: ['Badri', 'Badrinath Dham', 'Char Dham Badrinath'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Badrinath temple closes November–April. The road from Joshimath is also shut due to snow. Plan your visit between May and October.',
   },
 
   // ─── MADHYA PRADESH ─────────────────────────────────────────────────────────
@@ -4892,6 +4960,7 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 28.613, lng: 77.209 },
     emoji: '🏛️',
     highlights: ['Red Fort & Jama Masjid', 'Qutub Minar UNESCO', 'Humayun\'s Tomb UNESCO', 'India Gate at night', 'Chandni Chowk food walk', 'Lotus Temple', 'Akshardham'],
+    aliases: ['New Delhi', 'NCR'],
   },
 
   // ─── JAMMU & KASHMIR (UT) ───────────────────────────────────────────────────
@@ -5058,6 +5127,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 34.152, lng: 77.577 },
     emoji: '🏔️',
     highlights: ['Leh Palace', 'Shanti Stupa sunset', 'Main Bazaar walk', 'Khardung La (5,359m)', 'Magnetic Hill', 'Hall of Fame museum'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Ladakh roads (Manali–Leh and Srinagar–Leh) are closed November–April due to heavy snowfall. Fly into Leh if visiting in winter, but expect limited facilities.',
   },
   {
     id: 'la_pangong',
@@ -5085,6 +5156,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 33.762, lng: 78.640 },
     emoji: '💎',
     highlights: ['Spangmik camp', 'Chang La pass', 'Lake colour change', '3 Idiots filming spot', 'Star-filled night sky'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Pangong Lake is accessible only May–October. The road from Leh freezes completely in winter and the area gets cut off.',
   },
   {
     id: 'la_nubra',
@@ -5112,6 +5185,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 34.677, lng: 77.572 },
     emoji: '🐪',
     highlights: ['Hunder Bactrian camel ride', 'Diskit 32m Buddha', 'Khardung La cross', 'Panamik hot springs', 'Sumur Yarab Tso lake'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Nubra Valley is accessible only May–October. Khardung La pass (5,359m) remains closed in winter.',
   },
   {
     id: 'la_hemis',

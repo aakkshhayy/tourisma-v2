@@ -13,12 +13,27 @@ const font = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: 'Tourisma — Plan India Trips',
-  description: 'AI-powered India travel planner. Build day-by-day itineraries for any destination.',
-  keywords: 'India travel planner, trip itinerary, travel planning India',
+  description: 'AI-powered India travel planner. Build day-by-day itineraries with real routes, costs & travel options for any destination across India.',
+  keywords: 'India travel planner, trip itinerary, travel planning India, AI travel, Kedarnath, Goa, Rajasthan, pilgrimage, char dham yatra',
   openGraph: {
-    title: 'Tourisma — Plan India Trips',
-    description: 'AI-powered India travel planner',
+    title: 'Tourisma — Plan Your Perfect India Trip',
+    description: 'AI-powered itineraries with real routes & cost estimates. Free to use.',
     type: 'website',
+    siteName: 'Tourisma',
+    images: [
+      {
+        url: '/og-image.svg',
+        width: 1200,
+        height: 630,
+        alt: 'Tourisma — AI-powered India trip planner',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tourisma — Plan Your Perfect India Trip',
+    description: 'AI-powered itineraries with real routes & cost estimates. Free.',
+    images: ['/og-image.svg'],
   },
 };
 

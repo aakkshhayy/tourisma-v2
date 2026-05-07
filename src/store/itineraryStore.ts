@@ -21,6 +21,8 @@ export const useItineraryStore = create<ItineraryStore>((set, get) => ({
     numDays: 5,
     originCityId: 'delhi',
     optimisation: 'balanced',
+    travelMonth: new Date().getMonth() + 1,
+    tripType: 'general',
   },
 
   addPlace: (place) =>
