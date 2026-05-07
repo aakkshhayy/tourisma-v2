@@ -93,10 +93,28 @@ function ItineraryContent() {
     const fromParam = searchParams.get('from');
     const durationParam = searchParams.get('duration');
     const placeParam = searchParams.get('place');
+    const placesParam = searchParams.get('places'); // comma-separated, from QuickPlan
+    const monthParam = searchParams.get('month');
+    const groupParam = searchParams.get('group');
+    const stayParam = searchParams.get('stay');
+    const typeParam = searchParams.get('type');
     const editId = searchParams.get('edit');
     if (fromParam) setOptions({ originCityId: fromParam });
     if (durationParam) setOptions({ numDays: parseInt(durationParam) || 5 });
-    if (placeParam && !editId) {
+    if (monthParam) setOptions({ travelMonth: parseInt(monthParam) || new Date().getMonth() + 1 });
+    if (groupParam) setOptions({ groupSize: parseInt(groupParam) || 2 });
+    if (stayParam === 'budget' || stayParam === 'mid' || stayParam === 'luxury') setOptions({ stayType: stayParam });
+    if (typeParam === 'general' || typeParam === 'pilgrimage' || typeParam === 'family' ||
+        typeParam === 'honeymoon' || typeParam === 'solo' || typeParam === 'friends') {
+      setOptions({ tripType: typeParam });
+    }
+    if (placesParam && !editId) {
+      const ids = placesParam.split(',').filter(Boolean);
+      if (ids.length > 0) {
+        clearSelection();
+        ids.forEach(id => { const p = getPlaceById(id); if (p) addPlace(p); });
+      }
+    } else if (placeParam && !editId) {
       const p = getPlaceById(placeParam);
       if (p) { clearSelection(); addPlace(p); }
     }

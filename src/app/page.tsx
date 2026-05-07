@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight } from 'lucide-react';
+import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight, Wand2, Search } from 'lucide-react';
 import { ORIGIN_CITIES } from '@/lib/origins';
 import { PLACES } from '@/lib/places';
+import QuickPlanWizard from '@/components/QuickPlanWizard';
 
 const ANIMATED_WORDS = ['India Trip', 'Weekend Getaway', 'Adventure', 'Himalayan Trek', 'Beach Escape'];
 
@@ -147,6 +148,7 @@ const fadeUp = {
 export default function Home() {
   const router = useRouter();
   const [wordIndex, setWordIndex] = useState(0);
+  const [mode, setMode] = useState<'quick' | 'search'>('quick');
   const popularRoutes = getPopularRoutes();
   const currentMonthName = new Date().toLocaleString('en-IN', { month: 'long' });
   const [fromCity, setFromCity] = useState('');
@@ -238,9 +240,41 @@ export default function Home() {
             AI-powered itineraries. Real routes. Instant plans.
           </motion.p>
 
-          {/* Trip planner widget */}
+          {/* Mode tabs */}
           <motion.div
             variants={fadeUp} initial="hidden" animate="visible" custom={4}
+            className="max-w-3xl mx-auto mb-3">
+            <div className="inline-flex bg-white/5 border border-white/10 rounded-xl p-1 mx-auto">
+              <button onClick={() => setMode('quick')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all
+                  ${mode === 'quick' ? 'bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md' : 'text-white/50 hover:text-white'}`}>
+                <Wand2 className="w-4 h-4" strokeWidth={2.5} />
+                Quick Plan
+                <span className="hidden sm:inline text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded">RECOMMENDED</span>
+              </button>
+              <button onClick={() => setMode('search')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all
+                  ${mode === 'search' ? 'bg-white text-[#0A0A0B] shadow-md' : 'text-white/50 hover:text-white'}`}>
+                <Search className="w-4 h-4" strokeWidth={2.5} />
+                I know what I want
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Quick plan wizard */}
+          {mode === 'quick' && (
+            <motion.div
+              key="quick"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+              <QuickPlanWizard defaultFromCityId={fromCity} />
+            </motion.div>
+          )}
+
+          {/* Search mode — original trip planner widget */}
+          {mode === 'search' && (
+          <motion.div
+            key="search"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
             className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 max-w-3xl mx-auto">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <div>
@@ -325,6 +359,7 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" strokeWidth={2.5} />
             </button>
           </motion.div>
+          )}
 
           <motion.div
             variants={fadeUp} initial="hidden" animate="visible" custom={5}
