@@ -103,7 +103,13 @@ export default async function DestinationPage({ params }: PageProps) {
                 )}
               </div>
               <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">{place.name}</h1>
-              <p className="text-white/80 text-lg drop-shadow">{place.tagline}</p>
+              <p className="text-white/80 text-lg drop-shadow mb-5">{place.tagline}</p>
+              <Link href={`/itinerary?place=${place.id}`}
+                className="hidden sm:inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm hover:shadow-[0_0_25px_rgba(249,115,22,0.5)] transition-all">
+                <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+                Add {place.name} to my trip
+                <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+              </Link>
             </div>
           </div>
 
@@ -199,10 +205,10 @@ export default async function DestinationPage({ params }: PageProps) {
             <div className="bg-gradient-to-br from-orange-500/10 to-amber-400/5 border border-orange-500/20 rounded-2xl p-6">
               <h3 className="font-bold text-white mb-2">Plan a trip here</h3>
               <p className="text-white/50 text-sm mb-4">Generate a complete day-by-day itinerary including travel routes and cost estimates.</p>
-              <Link href={`/itinerary`}
+              <Link href={`/itinerary?place=${place.id}`}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
                 <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-                Build Itinerary
+                Add to my trip
                 <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
               </Link>
             </div>
@@ -282,6 +288,15 @@ export default async function DestinationPage({ params }: PageProps) {
             </div>
           </section>
         )}
+      </div>
+
+      {/* Sticky mobile CTA */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0A0A0B]/95 backdrop-blur-md border-t border-white/10 p-3">
+        <Link href={`/itinerary?place=${place.id}`}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-extrabold text-sm shadow-lg">
+          <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+          Add {place.name} to my trip
+        </Link>
       </div>
     </main>
   );

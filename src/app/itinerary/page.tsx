@@ -904,10 +904,58 @@ function ItineraryContent() {
               <div className="mt-5 flex items-start gap-2 bg-white/3 border border-white/8 rounded-xl p-4">
                 <Info className="w-4 h-4 text-white/30 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
                 <p className="text-xs text-white/40 leading-relaxed">
-                  We&apos;ve estimated this based on <span className="font-semibold capitalize text-white/60">{options.stayType}</span> travel averages for your group. Actual costs vary by season and booking timing — lock in prices early for best rates.
+                  Estimates based on <span className="font-semibold capitalize text-white/60">{options.stayType}</span> averages and current rail/road fares ({new Date().toLocaleString('en-IN', { month: 'short', year: 'numeric' })}). Actual prices vary by season and booking timing — lock in early for the best rates.
                 </p>
               </div>
             </motion.section>
+
+            {/* How you'll get there — first leg banner */}
+            {(() => {
+              const firstLeg = itinerary.journey.find(l => !l.isReturn);
+              if (!firstLeg) return null;
+              const cheapest = [...firstLeg.options].sort((a, b) => a.cost - b.cost)[0];
+              const fastest  = [...firstLeg.options].sort((a, b) => a.durationHours - b.durationHours)[0];
+              const sameOption = cheapest && fastest && cheapest.mode === fastest.mode;
+              const TravelIcon = firstLeg.mode === 'flight' ? Plane : firstLeg.mode === 'train' ? Train : firstLeg.mode === 'cab' ? Car : Bus;
+              return (
+                <motion.section
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                  className="bg-gradient-to-br from-sky-500/10 to-cyan-500/5 border border-sky-500/20 rounded-2xl p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center flex-shrink-0">
+                      <TravelIcon className="w-5 h-5 text-sky-400" strokeWidth={2.2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">How you&apos;ll get there</p>
+                      <h3 className="text-lg font-extrabold text-white truncate">{firstLeg.from} → {firstLeg.to}</h3>
+                      <p className="text-white/50 text-xs mt-0.5">{firstLeg.distanceKm.toLocaleString()} km · first leg of your trip</p>
+                    </div>
+                  </div>
+                  <div className={`grid ${sameOption ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                    {sameOption ? (
+                      <div className="bg-black/30 border border-white/10 rounded-xl p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Recommended</p>
+                        <p className="text-white font-extrabold text-base capitalize">{cheapest.mode} · {Math.round(cheapest.durationHours)}h</p>
+                        <p className="text-white/60 text-sm">₹{cheapest.cost.toLocaleString()} {firstLeg.mode === 'flight' ? '/person' : 'total'}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-black/30 border border-emerald-500/20 rounded-xl p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Cheapest</p>
+                          <p className="text-white font-extrabold text-sm capitalize">{cheapest.mode}</p>
+                          <p className="text-white/70 text-xs">₹{cheapest.cost.toLocaleString()} · {Math.round(cheapest.durationHours)}h</p>
+                        </div>
+                        <div className="bg-black/30 border border-amber-500/20 rounded-xl p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">Fastest</p>
+                          <p className="text-white font-extrabold text-sm capitalize">{fastest.mode}</p>
+                          <p className="text-white/70 text-xs">₹{fastest.cost.toLocaleString()} · {Math.round(fastest.durationHours)}h</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.section>
+              );
+            })()}
 
             {/* Day-by-day */}
             <motion.section
