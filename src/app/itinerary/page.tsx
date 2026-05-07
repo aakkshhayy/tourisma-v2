@@ -12,7 +12,9 @@ import {
   Utensils, Ticket, Package, Info, ExternalLink, BedDouble,
   Navigation, BadgeCheck, AlertTriangle,
 } from 'lucide-react';
+import Image from 'next/image';
 import { PLACES, STATES, getPlaceById, getStateById } from '@/lib/places';
+import { getPlaceImage } from '@/lib/placeImages';
 import { ORIGIN_CITIES, getOriginById } from '@/lib/origins';
 import { generateItinerary, getRecommendedDays } from '@/lib/itineraryGenerator';
 import { useItineraryStore } from '@/store/itineraryStore';
@@ -942,10 +944,17 @@ function ItineraryContent() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {day.places.map(p => {
                               const stateInfo = getStateById(p.state);
+                              const img = getPlaceImage(p.id);
                               return (
                                 <Link key={p.id} href={`/destination/${p.id}`}
-                                  className="group flex items-center gap-3 p-3 bg-[#111113] border border-white/5 hover:border-orange-500/30 rounded-xl transition-all">
-                                  <span className="text-2xl flex-shrink-0">{p.emoji}</span>
+                                  className="group flex items-center gap-3 p-2 bg-[#111113] border border-white/5 hover:border-orange-500/30 rounded-xl transition-all">
+                                  <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-[#1a1a1e] flex-shrink-0">
+                                    {img ? (
+                                      <Image src={img} alt={p.name} fill sizes="56px" className="object-cover group-hover:scale-105 transition-transform" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-2xl">{p.emoji}</div>
+                                    )}
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors truncate">{p.name}</p>
                                     <p className="text-white/30 text-xs flex items-center gap-1 mt-0.5">
@@ -953,7 +962,7 @@ function ItineraryContent() {
                                       {stateInfo?.name}
                                     </p>
                                   </div>
-                                  <ArrowRight className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0" strokeWidth={2.5} />
+                                  <ArrowRight className="w-3.5 h-3.5 text-white/20 group-hover:text-orange-400 transition-colors flex-shrink-0 mr-2" strokeWidth={2.5} />
                                 </Link>
                               );
                             })}
