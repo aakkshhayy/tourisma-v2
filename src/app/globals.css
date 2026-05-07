@@ -48,3 +48,51 @@
     scroll-behavior: smooth;
   }
 }
+
+/* Print stylesheet — used when users hit Ctrl/Cmd+P or click "Save as PDF" */
+@media print {
+  @page { margin: 1.2cm; }
+
+  /* Force light theme for print */
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide chrome elements */
+  nav, header, footer,
+  [data-print="hide"],
+  button, a[role="button"] {
+    display: none !important;
+  }
+
+  /* Reveal child links as plain text */
+  a { color: #000 !important; text-decoration: none !important; }
+
+  /* Surfaces become white with subtle borders */
+  .bg-\[\#111113\], .bg-\[\#0A0A0B\], .bg-\[\#0d0d10\], .bg-\[\#1a1a1e\],
+  .bg-white\/5, .bg-white\/3, .bg-black\/30, .bg-white\/10 {
+    background: #fff !important;
+    border-color: #ddd !important;
+  }
+
+  /* Text comes back to readable B&W */
+  .text-white, .text-white\/80, .text-white\/70, .text-white\/60, .text-white\/50 {
+    color: #000 !important;
+  }
+  .text-white\/40, .text-white\/30, .text-white\/20 { color: #555 !important; }
+
+  /* Remove all gradients & glow shadows */
+  .bg-gradient-to-r, .bg-gradient-to-br, .bg-gradient-to-b, .bg-gradient-to-t,
+  .shadow-md, .shadow-lg, .shadow-2xl,
+  [class*="shadow-["] { background: #fff !important; box-shadow: none !important; }
+
+  /* Avoid breaking day cards across pages */
+  section, .day-card { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Images: smaller, no decorative ones */
+  img { max-height: 200px; }
+}
+

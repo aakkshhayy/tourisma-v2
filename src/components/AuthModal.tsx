@@ -63,6 +63,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   // OTP
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const autoVerifiedRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,7 +145,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = useCallback(async () => {
     const token = otp.join('');
     if (token.length < 6) return;
     setLoading(true); setError(null);
@@ -150,8 +153,42 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     if (error) {
       setError('Invalid or expired code. Check your inbox and try again.');
       setLoading(false);
+      autoVerifiedRef.current = false; // allow re-trigger on next full entry
     } else {
       onClose();
+    }
+  }, [otp, email, username, verifyEmailOtp, onClose]);
+
+  // Auto-submit when 6 digits entered
+  useEffect(() => {
+    if (screen !== 'verify') return;
+    const token = otp.join('');
+    if (token.length === 6 && !loading && !autoVerifiedRef.current) {
+      autoVerifiedRef.current = true;
+      handleVerify();
+    }
+    if (token.length < 6) autoVerifiedRef.current = false;
+  }, [otp, screen, loading, handleVerify]);
+
+  // Resend countdown — 60s after entering verify screen, ticks down
+  useEffect(() => {
+    if (screen !== 'verify') { setResendCooldown(0); return; }
+    setResendCooldown(60);
+    const id = setInterval(() => {
+      setResendCooldown(c => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [screen]);
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resending || !email) return;
+    setResending(true); setError(null);
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    setResending(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setResendCooldown(60);
     }
   };
 
@@ -283,11 +320,16 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
         <p className="mt-4 text-center text-xs text-white/40">
           Didn&apos;t get the code? Check your spam folder or{' '}
-          <button
-            onClick={() => { switchScreen('signup'); }}
-            className="font-bold text-orange-400 hover:underline">
-            try again
-          </button>
+          {resendCooldown > 0 ? (
+            <span className="font-bold text-white/40">resend in {resendCooldown}s</span>
+          ) : (
+            <button
+              onClick={handleResendOtp}
+              disabled={resending}
+              className="font-bold text-orange-400 hover:underline disabled:opacity-50">
+              {resending ? 'sending…' : 'resend code'}
+            </button>
+          )}
         </p>
         </div>
       </div>

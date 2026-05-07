@@ -172,48 +172,6 @@ function ItineraryContent() {
 
   const handleReset = () => { setItinerary(null); setGenerated(false); };
 
-  const handleDownload = () => {
-    if (!itinerary) return;
-    const origin = getOriginById(options.originCityId);
-    const lines: string[] = [];
-    lines.push('TOURISMA — TRIP ITINERARY');
-    lines.push('='.repeat(40));
-    lines.push(`From: ${origin?.name ?? '—'}`);
-    lines.push(`Duration: ${options.numDays} days  Group: ${options.groupSize}  Stay: ${options.stayType}`);
-    lines.push('');
-    lines.push(`Route: ${itinerary.route.join(' → ')}`);
-    lines.push(`Distance: ${itinerary.totalDistanceKm.toLocaleString()} km`);
-    lines.push('');
-    lines.push('DAY-BY-DAY');
-    lines.push('-'.repeat(40));
-    itinerary.days.forEach(d => {
-      lines.push(`Day ${d.day}: ${d.places.map(p => p.name).join(' & ')}`);
-      lines.push(`  ${d.travelNote}`);
-    });
-    lines.push('');
-    lines.push('COST ESTIMATE (₹)');
-    lines.push('-'.repeat(40));
-    const c = itinerary.totalEstimatedCost;
-    lines.push(`Travel : ${c.travel.toLocaleString()}`);
-    lines.push(`Stay   : ${c.stay.toLocaleString()}`);
-    lines.push(`Food   : ${c.food.toLocaleString()}`);
-    lines.push(`Entry  : ${c.entry.toLocaleString()}`);
-    lines.push(`Misc.  : ${c.miscellaneous.toLocaleString()}`);
-    lines.push(`TOTAL  : ${c.total.toLocaleString()}`);
-    lines.push(`Per person : ${Math.round(c.total / options.groupSize).toLocaleString()}`);
-    lines.push('');
-    lines.push('TIPS');
-    lines.push('-'.repeat(40));
-    itinerary.tips.forEach(t => lines.push(`• ${t}`));
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tourisma-${options.numDays}day-trip.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleShare = async () => {
     if (!itinerary) return;
     const origin = getOriginById(options.originCityId);
@@ -989,6 +947,43 @@ function ItineraryContent() {
                             {day.places.map(p => p.name).join(' & ')}
                           </h3>
                           <p className="text-white/50 text-sm mb-4 leading-relaxed">{day.travelNote}</p>
+
+                          {/* Time-block schedule using each place's highlights */}
+                          {day.places.length > 0 && (() => {
+                            const blocks: { label: string; emoji: string; items: string[] }[] = [
+                              { label: 'Morning',   emoji: '🌅', items: [] },
+                              { label: 'Afternoon', emoji: '☀️', items: [] },
+                              { label: 'Evening',   emoji: '🌆', items: [] },
+                            ];
+                            // Round-robin highlights from each place across the 3 blocks
+                            const highlights = day.places.flatMap(p => (p.highlights ?? []).slice(0, 3));
+                            highlights.slice(0, 6).forEach((h, i) => {
+                              blocks[i % 3].items.push(h);
+                            });
+                            // Fallback: if no highlights, use place names
+                            if (highlights.length === 0) {
+                              day.places.forEach((p, i) => {
+                                blocks[i % 3].items.push(p.name);
+                              });
+                            }
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                                {blocks.map(b => b.items.length > 0 && (
+                                  <div key={b.label} className="bg-[#0d0d10] border border-white/5 rounded-lg p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5 flex items-center gap-1">
+                                      <span>{b.emoji}</span> {b.label}
+                                    </p>
+                                    <ul className="space-y-0.5">
+                                      {b.items.map((it, i) => (
+                                        <li key={i} className="text-xs text-white/70 leading-snug">· {it}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {day.places.map(p => {
                               const stateInfo = getStateById(p.state);
@@ -1136,9 +1131,9 @@ function ItineraryContent() {
                 <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
                 Modify
               </button>
-              <button onClick={handleDownload} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
+              <button onClick={() => window.print()} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Download className="w-4 h-4" strokeWidth={2.5} />
-                Download
+                Save as PDF
               </button>
               <button onClick={handleShare} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Share2 className="w-4 h-4" strokeWidth={2.5} />
