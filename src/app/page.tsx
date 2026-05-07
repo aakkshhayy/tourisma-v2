@@ -375,12 +375,6 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center pt-2">
-          <div className="w-1 h-2 rounded-full bg-white/40" />
-        </motion.div>
       </section>
 
       {/* Popular Routes */}
