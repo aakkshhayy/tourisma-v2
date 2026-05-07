@@ -238,46 +238,28 @@ export function recommendTrips(input: RecommendInput): TripSuggestion[] {
 
   const results: TripSuggestion[] = [];
 
-  // "Your Pick" — user-chosen places topped up with smart compatible recs
+  // "Your Trip" — exactly the places the user picked, nothing more.
+  // The 3 other suggestions cover variety/budget/diverse if they want alternatives.
   if (input.mustInclude && input.mustInclude.length > 0) {
     const chosen = input.mustInclude
       .map(id => PLACES.find(p => p.id === id))
       .filter((p): p is TouristPlace => !!p);
 
     if (chosen.length > 0) {
-      const targetCount = Math.max(3, Math.min(7, Math.round(input.numDays / 1.2)));
-      const chosenIds = new Set(chosen.map(p => p.id));
-
-      // Re-score candidates with proximity to user's picks as an extra signal
-      const chosenCoords = chosen.map(p => p.coordinates);
-      const filledCandidates = candidates
-        .filter(c => !chosenIds.has(c.place.id))
-        .map(c => {
-          const minDistToChosen = Math.min(
-            ...chosenCoords.map(co => haversineKm(co, c.place.coordinates)),
-          );
-          // Heavy boost for places within 400 km of any chosen place
-          const proximityBonus = Math.max(0, 1 - minDistToChosen / 800) * 2.5;
-          return { place: c.place, score: c.score + proximityBonus };
-        })
-        .sort((a, b) => b.score - a.score);
-
-      const filler = filledCandidates.slice(0, Math.max(0, targetCount - chosen.length)).map(c => c.place);
-      const places = [...chosen, ...filler];
-      const totalCost = approxTotalCost(places, input);
+      const totalCost = approxTotalCost(chosen, input);
       const perPerson = Math.round(totalCost / input.groupSize);
       results.push({
         id: 'your_pick',
         label: 'Your Trip',
-        tagline: chosen.length === places.length
-          ? 'The places you picked — built into a route'
-          : `Your ${chosen.length} pick${chosen.length > 1 ? 's' : ''} + ${places.length - chosen.length} smart add-on${places.length - chosen.length > 1 ? 's' : ''}`,
+        tagline: chosen.length === 1
+          ? `${input.numDays} days at ${chosen[0].name} — exactly as you picked`
+          : `Your ${chosen.length} picks — built into a route`,
         emoji: '⭐',
-        places,
+        places: chosen,
         totalCost,
         perPerson,
         withinBudget: perPerson <= input.budgetPerPerson * 1.1,
-        route: places.map(p => p.name),
+        route: chosen.map(p => p.name),
         days: input.numDays,
       });
     }
