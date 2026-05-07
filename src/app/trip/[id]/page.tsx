@@ -1,15 +1,12 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
-  MapPin, ArrowRight, IndianRupee, Calendar, Users,
-  Sparkles, Train, Hotel, Utensils, Ticket, Package,
-  Compass, ExternalLink,
+  MapPin, ArrowRight, IndianRupee, Sparkles, Train, Hotel, Utensils,
+  Ticket, Package, Compass,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Itinerary } from '@/lib/types';
+import { getPlaceImage } from '@/lib/placeImages';
 
 const COST_ROWS = [
   { key: 'travel' as const,        label: 'Travel',     icon: Train,       color: 'text-sky-400' },
@@ -19,49 +16,87 @@ const COST_ROWS = [
   { key: 'miscellaneous' as const, label: 'Misc.',      icon: Package,     color: 'text-emerald-400' },
 ];
 
-export default function SharedTripPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const [trip, setTrip] = useState<{ title: string; duration: number | null; itinerary: Itinerary } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-  useEffect(() => {
-    supabase
-      .from('saved_trips')
-      .select('title, duration, itinerary')
-      .eq('id', id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        setLoading(false);
-        if (error || !data) { setNotFound(true); return; }
-        setTrip(data as { title: string; duration: number | null; itinerary: Itinerary });
-      });
-  }, [id]);
+interface TripRow {
+  title: string;
+  duration: number | null;
+  itinerary: Itinerary;
+}
 
-  if (loading) return (
-    <main className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-    </main>
-  );
+async function fetchTrip(id: string): Promise<TripRow | null> {
+  const { data } = await supabase
+    .from('saved_trips')
+    .select('title, duration, itinerary')
+    .eq('id', id)
+    .maybeSingle();
+  return data as TripRow | null;
+}
 
-  if (notFound || !trip) return (
-    <main className="min-h-screen bg-[#0A0A0B] flex items-center justify-center text-center px-4">
-      <div>
-        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-          <Compass className="w-8 h-8 text-white/20" strokeWidth={2.2} />
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const trip = await fetchTrip(id);
+  if (!trip) {
+    return { title: 'Trip not found — Tourisma', description: 'This shared trip link may have expired.' };
+  }
+
+  const { itinerary, title } = trip;
+  const meta = (itinerary as unknown as Record<string, unknown>)._meta as
+    { options?: { groupSize?: number; stayType?: string } } | undefined;
+  const groupSize = meta?.options?.groupSize ?? 1;
+  const perPerson = Math.round(itinerary.totalEstimatedCost.total / groupSize);
+  const route = itinerary.route.join(' → ');
+  const days = trip.duration ?? itinerary.days.length;
+  const description = `${days}-day itinerary: ${route}. ₹${perPerson.toLocaleString()}/person. Planned with Tourisma.`;
+
+  // First place image becomes the OG preview
+  const firstPlaceId = itinerary.days[0]?.places[0]?.id;
+  const firstImage = firstPlaceId ? getPlaceImage(firstPlaceId) : undefined;
+  const ogImage = firstImage ? `https://tourisma-v2.vercel.app${firstImage}` : 'https://tourisma-v2.vercel.app/og-image.svg';
+
+  return {
+    title: `${title} — Tourisma`,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      siteName: 'Tourisma',
+      images: [{ url: ogImage, width: 800, height: 600, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
+
+export default async function SharedTripPage({ params }: PageProps) {
+  const { id } = await params;
+  const trip = await fetchTrip(id);
+
+  if (!trip) {
+    return (
+      <main className="min-h-screen bg-[#0A0A0B] flex items-center justify-center text-center px-4">
+        <div>
+          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <Compass className="w-8 h-8 text-white/20" strokeWidth={2.2} />
+          </div>
+          <h2 className="text-2xl font-extrabold text-white mb-2">Trip not found</h2>
+          <p className="text-white/40 mb-6">This link may have expired or the trip was deleted.</p>
+          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm">
+            Plan your own trip
+          </Link>
         </div>
-        <h2 className="text-2xl font-extrabold text-white mb-2">Trip not found</h2>
-        <p className="text-white/40 mb-6">This link may have expired or the trip was deleted.</p>
-        <button onClick={() => router.push('/')}
-          className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm">
-          Plan your own trip
-        </button>
-      </div>
-    </main>
-  );
+      </main>
+    );
+  }
 
-  const itinerary = trip.itinerary;
+  const { itinerary } = trip;
   const meta = (itinerary as unknown as Record<string, unknown>)._meta as
     { options?: { groupSize?: number; stayType?: string } } | undefined;
   const groupSize = meta?.options?.groupSize ?? 1;
@@ -80,7 +115,6 @@ export default function SharedTripPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">{trip.title}</h1>
 
-          {/* Route */}
           <div className="flex flex-wrap items-center gap-2 mb-6">
             {itinerary.route.map((place, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -93,7 +127,6 @@ export default function SharedTripPage() {
             ))}
           </div>
 
-          {/* Budget hero */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 bg-black/30 rounded-xl border border-white/8 mb-6">
             <div className="flex items-baseline gap-1">
               <span className="text-3xl font-extrabold text-white">₹{perPerson.toLocaleString()}</span>
@@ -105,22 +138,16 @@ export default function SharedTripPage() {
             </div>
           </div>
 
-          {/* Plan your own CTA */}
-          <button onClick={() => router.push('/itinerary')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
+          <Link href="/itinerary" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
             <Sparkles className="w-4 h-4" strokeWidth={2.5} />
             Plan your own trip
-            <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.5} />
-          </button>
+            <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </Link>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
-
-        {/* Cost breakdown */}
-        <motion.section
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
+        <section className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-5">
             <IndianRupee className="w-5 h-5 text-amber-400" strokeWidth={2.5} />
             <h2 className="text-lg font-extrabold text-white">Cost Breakdown</h2>
@@ -146,13 +173,13 @@ export default function SharedTripPage() {
               <span className="text-white font-extrabold text-lg">₹{itinerary.totalEstimatedCost.total.toLocaleString()}</span>
             </div>
           </div>
-        </motion.section>
+          <p className="mt-4 text-[11px] text-white/30 leading-relaxed">
+            Estimates based on current rail/road fares and {stayType} stay averages. Actual prices vary by season and booking timing.
+          </p>
+        </section>
 
-        {/* Day-by-day */}
         {itinerary.days.map((day, i) => (
-          <motion.section key={i}
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
+          <section key={i} className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-extrabold text-sm">{day.day}</span>
@@ -172,14 +199,11 @@ export default function SharedTripPage() {
             {day.travelNote && (
               <p className="text-white/40 text-xs leading-relaxed">{day.travelNote}</p>
             )}
-          </motion.section>
+          </section>
         ))}
 
-        {/* Tips */}
         {itinerary.tips.length > 0 && (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
+          <section className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-violet-400" strokeWidth={2.5} />
               <h2 className="text-lg font-extrabold text-white">Travel Tips</h2>
@@ -192,10 +216,9 @@ export default function SharedTripPage() {
                 </li>
               ))}
             </ul>
-          </motion.section>
+          </section>
         )}
 
-        {/* Bottom CTA */}
         <div className="text-center py-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
@@ -204,11 +227,10 @@ export default function SharedTripPage() {
             <span className="font-extrabold text-white">Tourisma</span>
           </div>
           <p className="text-white/40 text-sm mb-4">AI-powered India trip planner · Free to use</p>
-          <button onClick={() => router.push('/itinerary')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
+          <Link href="/itinerary" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
             <Sparkles className="w-4 h-4" strokeWidth={2.5} />
             Plan your own trip
-          </button>
+          </Link>
         </div>
       </div>
     </main>

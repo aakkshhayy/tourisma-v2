@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight, Wand2, Search } from 'lucide-react';
-import { ORIGIN_CITIES } from '@/lib/origins';
+import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight } from 'lucide-react';
 import { PLACES } from '@/lib/places';
+import { ORIGIN_CITIES } from '@/lib/origins';
 import QuickPlanWizard from '@/components/QuickPlanWizard';
 
 const ANIMATED_WORDS = ['India Trip', 'Weekend Getaway', 'Adventure', 'Himalayan Trek', 'Beach Escape'];
@@ -148,25 +148,8 @@ const fadeUp = {
 export default function Home() {
   const router = useRouter();
   const [wordIndex, setWordIndex] = useState(0);
-  const [mode, setMode] = useState<'quick' | 'search'>('quick');
   const popularRoutes = getPopularRoutes();
   const currentMonthName = new Date().toLocaleString('en-IN', { month: 'long' });
-  const [fromCity, setFromCity] = useState('');
-  const [fromOther, setFromOther] = useState('');
-  const [showFromOther, setShowFromOther] = useState(false);
-  const [placeQuery, setPlaceQuery] = useState('');
-  const [selectedPlaceId, setSelectedPlaceId] = useState('');
-  const [showPlaceSuggestions, setShowPlaceSuggestions] = useState(false);
-  const [duration, setDuration] = useState('5');
-
-  const placeSuggestions = placeQuery.trim().length > 0
-    ? PLACES.filter(p => {
-        const q = placeQuery.toLowerCase();
-        return p.name.toLowerCase().includes(q)
-          || p.tagline.toLowerCase().includes(q)
-          || (p.aliases?.some(a => a.toLowerCase().includes(q)) ?? false);
-      }).slice(0, 6)
-    : [];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -174,14 +157,6 @@ export default function Home() {
     }, 2200);
     return () => clearInterval(interval);
   }, []);
-
-  const handleGenerate = () => {
-    const params = new URLSearchParams();
-    if (fromCity) params.set('from', fromCity);
-    if (selectedPlaceId) params.set('place', selectedPlaceId);
-    if (duration) params.set('duration', duration);
-    router.push(`/itinerary?${params.toString()}`);
-  };
 
   return (
     <main className="min-h-screen bg-[#0A0A0B]">
@@ -240,126 +215,11 @@ export default function Home() {
             AI-powered itineraries. Real routes. Instant plans.
           </motion.p>
 
-          {/* Mode tabs */}
           <motion.div
             variants={fadeUp} initial="hidden" animate="visible" custom={4}
-            className="max-w-3xl mx-auto mb-3">
-            <div className="inline-flex bg-white/5 border border-white/10 rounded-xl p-1 mx-auto">
-              <button onClick={() => setMode('quick')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all
-                  ${mode === 'quick' ? 'bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md' : 'text-white/50 hover:text-white'}`}>
-                <Wand2 className="w-4 h-4" strokeWidth={2.5} />
-                Quick Plan
-                <span className="hidden sm:inline text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded">RECOMMENDED</span>
-              </button>
-              <button onClick={() => setMode('search')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all
-                  ${mode === 'search' ? 'bg-white text-[#0A0A0B] shadow-md' : 'text-white/50 hover:text-white'}`}>
-                <Search className="w-4 h-4" strokeWidth={2.5} />
-                I know what I want
-              </button>
-            </div>
+            className="max-w-3xl mx-auto">
+            <QuickPlanWizard />
           </motion.div>
-
-          {/* Quick plan wizard */}
-          {mode === 'quick' && (
-            <motion.div
-              key="quick"
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <QuickPlanWizard defaultFromCityId={fromCity} />
-            </motion.div>
-          )}
-
-          {/* Search mode — original trip planner widget */}
-          {mode === 'search' && (
-          <motion.div
-            key="search"
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-            className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 max-w-3xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-              <div>
-                <label className="block text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">From city</label>
-                <select
-                  value={showFromOther ? '__other__' : fromCity}
-                  onChange={e => {
-                    if (e.target.value === '__other__') { setShowFromOther(true); setFromCity(''); }
-                    else { setShowFromOther(false); setFromCity(e.target.value); }
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-orange-500/50 transition-all appearance-none cursor-pointer">
-                  <option value="" className="bg-[#111113]">Select city</option>
-                  {ORIGIN_CITIES.map(c => (
-                    <option key={c.id} value={c.id} className="bg-[#111113]">{c.emoji} {c.name}</option>
-                  ))}
-                  <option value="__other__" className="bg-[#111113]">📍 Other city…</option>
-                </select>
-                {showFromOther && (
-                  <input
-                    type="text"
-                    placeholder="Type your city name"
-                    value={fromOther}
-                    onChange={e => setFromOther(e.target.value)}
-                    className="mt-2 w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 transition-all"
-                  />
-                )}
-              </div>
-              <div className="relative">
-                <label className="block text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">To destination</label>
-                <input
-                  type="text"
-                  placeholder="Search — Kedarnath, Kashi, Goa…"
-                  value={placeQuery}
-                  onChange={e => {
-                    setPlaceQuery(e.target.value);
-                    setSelectedPlaceId('');
-                    setShowPlaceSuggestions(true);
-                  }}
-                  onFocus={() => setShowPlaceSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowPlaceSuggestions(false), 150)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 transition-all"
-                />
-                {showPlaceSuggestions && placeSuggestions.length > 0 && (
-                  <div className="absolute z-50 top-full mt-1 w-full bg-[#1a1a1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-                    {placeSuggestions.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onMouseDown={() => {
-                          setPlaceQuery(p.name);
-                          setSelectedPlaceId(p.id);
-                          setShowPlaceSuggestions(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors">
-                        <span className="text-lg">{p.emoji}</span>
-                        <div>
-                          <p className="text-white text-sm font-medium">{p.name}</p>
-                          <p className="text-white/40 text-xs">{p.tagline}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">Duration</label>
-                <select
-                  value={duration}
-                  onChange={e => setDuration(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-orange-500/50 transition-all appearance-none cursor-pointer">
-                  {[3, 5, 7, 10, 14, 21].map(d => (
-                    <option key={d} value={d} className="bg-[#111113]">{d} days</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <button
-              onClick={handleGenerate}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-base hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] transition-all group">
-              <Sparkles className="w-5 h-5" strokeWidth={2.5} />
-              Generate My Trip Plan
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" strokeWidth={2.5} />
-            </button>
-          </motion.div>
-          )}
 
           <motion.div
             variants={fadeUp} initial="hidden" animate="visible" custom={5}
