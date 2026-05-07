@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { MapPin, Clock, Star, ArrowLeft, ArrowRight, Sparkles, Train, Plane } from 'lucide-react';
 import { PLACES, getPlaceById, getPlacesByState, getStateById } from '@/lib/places';
 import { getPlaceImage } from '@/lib/placeImages';
+import PlaceMap from '@/components/PlaceMap';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -162,6 +163,26 @@ export default async function DestinationPage({ params }: PageProps) {
                 </ul>
               </section>
             )}
+
+            {/* Map */}
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-400" strokeWidth={2.5} />
+                On the map
+              </h2>
+              <PlaceMap
+                lat={place.coordinates.lat}
+                lng={place.coordinates.lng}
+                name={place.name}
+                nearestRailway={place.nearestRailway.station}
+                nearestRailwayKm={place.nearestRailway.distanceKm}
+                nearestAirport={place.nearestAirport.airport}
+                nearestAirportKm={place.nearestAirport.distanceKm}
+              />
+              <p className="text-white/30 text-xs mt-2">
+                Map data © OpenStreetMap contributors · {place.nearestRailway.station} {place.nearestRailway.distanceKm}km · {place.nearestAirport.airport} {place.nearestAirport.distanceKm}km
+              </p>
+            </section>
 
             {/* Nearby attractions */}
             {place.nearbyAttractions.length > 0 && (

@@ -39,6 +39,8 @@ export default function SavedTripsPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
 
   const handleCopyLink = (e: React.MouseEvent, tripId: string) => {
     e.stopPropagation();
@@ -87,9 +89,13 @@ export default function SavedTripsPage() {
 
   const handleSaveNote = async (id: string) => {
     const notes = noteValues[id] ?? '';
+    setSavingNoteId(id);
     await supabase.from('saved_trips').update({ notes }).eq('id', id);
     setTrips(prev => prev.map(t => t.id === id ? { ...t, notes } : t));
+    setSavingNoteId(null);
     setEditingNoteId(null);
+    setSavedNoteId(id);
+    setTimeout(() => setSavedNoteId(prev => (prev === id ? null : prev)), 2200);
   };
 
   const handleEdit = (e: React.MouseEvent, trip: SavedTrip) => {
@@ -343,6 +349,9 @@ export default function SavedTripsPage() {
                           <div>
                             <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <StickyNote className="w-3.5 h-3.5" strokeWidth={2.5} /> My notes
+                              {savedNoteId === trip.id && (
+                                <span className="font-bold text-emerald-400 normal-case tracking-normal">Saved ✓</span>
+                              )}
                             </p>
                             {editingNoteId === trip.id ? (
                               <div className="space-y-2">
@@ -356,8 +365,10 @@ export default function SavedTripsPage() {
                                 />
                                 <div className="flex gap-2">
                                   <button onClick={() => handleSaveNote(trip.id)}
-                                    className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition-colors">
-                                    Save
+                                    disabled={savingNoteId === trip.id}
+                                    className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center gap-1.5">
+                                    {savingNoteId === trip.id ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} /> : null}
+                                    {savingNoteId === trip.id ? 'Saving…' : 'Save'}
                                   </button>
                                   <button onClick={() => { setEditingNoteId(null); setNoteValues(prev => ({ ...prev, [trip.id]: trip.notes ?? '' })); }}
                                     className="px-4 py-1.5 rounded-lg bg-white/5 text-white/50 text-xs font-bold hover:bg-white/10 transition-colors">
