@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPin, Clock, Star, ArrowLeft, ArrowRight, Sparkles, Train, Plane } from 'lucide-react';
 import { PLACES, getPlaceById, getPlacesByState, getStateById } from '@/lib/places';
+import { getPlaceImage } from '@/lib/placeImages';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,34 +59,51 @@ export default async function DestinationPage({ params }: PageProps) {
     .filter(p => p.id !== place.id)
     .slice(0, 4);
 
+  const heroImage = getPlaceImage(place.id);
+
   return (
     <main className="min-h-screen bg-[#0A0A0B]">
-      {/* Hero */}
-      <div className="relative bg-[#0d0d10] border-b border-white/5 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
+      {/* Hero with background photo */}
+      <div className="relative border-b border-white/5 overflow-hidden">
+        {heroImage ? (
+          <div className="absolute inset-0">
+            <Image
+              src={heroImage}
+              alt={place.name}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0B] via-[#0A0A0B]/80 to-[#0A0A0B]/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0B]/60 via-transparent to-[#0A0A0B]/60" />
+          </div>
+        ) : (
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
+        )}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
           <Link href="/explore"
-            className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm font-semibold mb-8 transition-colors group">
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm font-semibold mb-8 transition-colors group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2.5} />
             All destinations
           </Link>
 
           <div className="flex items-start gap-6 mb-6">
-            <span className="text-6xl">{place.emoji}</span>
+            <span className="text-6xl drop-shadow-lg">{place.emoji}</span>
             <div className="flex-1">
               <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${CATEGORY_COLORS[place.category] ?? 'bg-white/5 text-white/40 border-white/10'}`}>
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${CATEGORY_COLORS[place.category] ?? 'bg-white/5 text-white/40 border-white/10'} backdrop-blur-md`}>
                   {CATEGORY_LABELS[place.category]}
                 </span>
                 {stateInfo && (
-                  <span className="text-xs font-semibold text-white/40 bg-white/5 border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-white/80 bg-black/40 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" strokeWidth={2.2} />
                     {stateInfo.name}
                   </span>
                 )}
               </div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">{place.name}</h1>
-              <p className="text-white/60 text-lg">{place.tagline}</p>
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">{place.name}</h1>
+              <p className="text-white/80 text-lg drop-shadow">{place.tagline}</p>
             </div>
           </div>
 
@@ -241,14 +260,25 @@ export default async function DestinationPage({ params }: PageProps) {
               </span>
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {nearbyPlaces.map(p => (
-                <Link key={p.id} href={`/destination/${p.id}`}
-                  className="group bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl p-5 transition-all hover:-translate-y-0.5">
-                  <span className="text-2xl mb-2 block">{p.emoji}</span>
-                  <h3 className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors">{p.name}</h3>
-                  <p className="text-white/40 text-xs mt-1 line-clamp-2">{p.tagline}</p>
-                </Link>
-              ))}
+              {nearbyPlaces.map(p => {
+                const img = getPlaceImage(p.id);
+                return (
+                  <Link key={p.id} href={`/destination/${p.id}`}
+                    className="group bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5">
+                    <div className="relative aspect-[4/3] bg-[#1a1a1e] overflow-hidden">
+                      {img ? (
+                        <Image src={img} alt={p.name} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">{p.emoji}</div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors">{p.name}</h3>
+                      <p className="text-white/40 text-xs mt-1 line-clamp-2">{p.tagline}</p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}

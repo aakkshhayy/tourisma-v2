@@ -3,8 +3,10 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Search, MapPin, Filter, X, ArrowRight, Clock, PlusCircle } from 'lucide-react';
 import { PLACES, STATES, getStateById } from '@/lib/places';
+import { getPlaceImage } from '@/lib/placeImages';
 
 const CATEGORY_LABELS: Record<string, string> = {
   heritage: 'Heritage',
@@ -166,35 +168,51 @@ export default function ExplorePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.6) }}>
-                  <div className="group bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl p-5 transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-3xl">{place.emoji}</span>
-                      <Link href={`/itinerary?place=${place.id}`}
-                        className="flex items-center gap-1 text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded-lg hover:bg-orange-500/20 transition-colors">
-                        <PlusCircle className="w-3 h-3" strokeWidth={2.5} />
-                        Add to trip
-                      </Link>
+                  <div className="group relative bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(249,115,22,0.12)] hover:-translate-y-0.5">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#1a1a1e]">
+                      {getPlaceImage(place.id) ? (
+                        <Image
+                          src={getPlaceImage(place.id)!}
+                          alt={place.name}
+                          fill
+                          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-6xl">{place.emoji}</div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
+                        <h3 className="font-extrabold text-white text-lg leading-tight drop-shadow-lg">{place.name}</h3>
+                        <div className="flex items-center gap-1.5 text-white/80 text-xs mt-0.5">
+                          <MapPin className="w-3 h-3" strokeWidth={2.5} />
+                          {stateInfo?.name}
+                        </div>
+                      </div>
                     </div>
-                    <Link href={`/destination/${place.id}`}>
-                      <h3 className="font-bold text-white text-base mb-1 leading-tight group-hover:text-orange-400 transition-colors">{place.name}</h3>
+                    <div className="p-4">
+                      <p className="text-white/50 text-xs line-clamp-2 mb-3 leading-relaxed">{place.tagline}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[place.category] ?? 'bg-white/5 text-white/40 border-white/10'}`}>
+                          {CATEGORY_LABELS[place.category]}
+                        </span>
+                        <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                          {place.recommendedDays}d
+                        </span>
+                        <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" strokeWidth={2.2} />
+                          {place.bestTimeToVisit.split('–')[0].trim().split(' ')[0]}–{place.bestTimeToVisit.split('–')[1]?.trim().split(' ')[0] ?? ''}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Full-card overlay link to destination detail */}
+                    <Link href={`/destination/${place.id}`} className="absolute inset-0 z-10" aria-label={`View ${place.name}`} />
+                    {/* Add-to-trip button sits above the overlay */}
+                    <Link href={`/itinerary?place=${place.id}`}
+                      className="absolute top-3 right-3 z-20 flex items-center gap-1 text-[10px] font-bold text-white bg-black/50 backdrop-blur-md border border-white/20 px-2 py-1 rounded-lg hover:bg-orange-500/80 hover:border-orange-500 transition-colors">
+                      <PlusCircle className="w-3 h-3" strokeWidth={2.5} />
+                      Add to trip
                     </Link>
-                    <div className="flex items-center gap-1.5 text-white/40 text-xs mb-2">
-                      <MapPin className="w-3 h-3" strokeWidth={2.2} />
-                      {stateInfo?.name}
-                    </div>
-                    <p className="text-white/40 text-xs line-clamp-2 mb-3 leading-relaxed">{place.tagline}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[place.category] ?? 'bg-white/5 text-white/40 border-white/10'}`}>
-                        {CATEGORY_LABELS[place.category]}
-                      </span>
-                      <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                        {place.recommendedDays}d
-                      </span>
-                      <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5" strokeWidth={2.2} />
-                        {place.bestTimeToVisit.split('–')[0].trim().split(' ')[0]}–{place.bestTimeToVisit.split('–')[1]?.trim().split(' ')[0] ?? ''}
-                      </span>
-                    </div>
                   </div>
                 </motion.div>
               );
