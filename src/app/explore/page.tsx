@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Filter, X, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Filter, X, ArrowRight, Clock, PlusCircle } from 'lucide-react';
 import { PLACES, STATES, getStateById } from '@/lib/places';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -166,13 +166,18 @@ export default function ExplorePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.6) }}>
-                  <Link href={`/destination/${place.id}`}
-                    className="group block bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl p-5 transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
+                  <div className="group bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl p-5 transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
                     <div className="flex items-start justify-between mb-3">
                       <span className="text-3xl">{place.emoji}</span>
-                      <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" strokeWidth={2.5} />
+                      <Link href={`/itinerary?place=${place.id}`}
+                        className="flex items-center gap-1 text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded-lg hover:bg-orange-500/20 transition-colors">
+                        <PlusCircle className="w-3 h-3" strokeWidth={2.5} />
+                        Add to trip
+                      </Link>
                     </div>
-                    <h3 className="font-bold text-white text-base mb-1 leading-tight group-hover:text-orange-400 transition-colors">{place.name}</h3>
+                    <Link href={`/destination/${place.id}`}>
+                      <h3 className="font-bold text-white text-base mb-1 leading-tight group-hover:text-orange-400 transition-colors">{place.name}</h3>
+                    </Link>
                     <div className="flex items-center gap-1.5 text-white/40 text-xs mb-2">
                       <MapPin className="w-3 h-3" strokeWidth={2.2} />
                       {stateInfo?.name}
@@ -185,8 +190,12 @@ export default function ExplorePage() {
                       <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                         {place.recommendedDays}d
                       </span>
+                      <span className="text-[10px] font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" strokeWidth={2.2} />
+                        {place.bestTimeToVisit.split('–')[0].trim().split(' ')[0]}–{place.bestTimeToVisit.split('–')[1]?.trim().split(' ')[0] ?? ''}
+                      </span>
                     </div>
-                  </Link>
+                  </div>
                 </motion.div>
               );
             })}

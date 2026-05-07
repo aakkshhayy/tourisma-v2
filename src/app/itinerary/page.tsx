@@ -10,7 +10,7 @@ import {
   ChevronLeft, Wand2, Loader2, Download, Share2, Bookmark,
   Search, IndianRupee, Zap, Scale, Trophy, Route, Clock,
   Utensils, Ticket, Package, Info, ExternalLink, BedDouble,
-  Navigation, BadgeCheck,
+  Navigation, BadgeCheck, AlertTriangle,
 } from 'lucide-react';
 import { PLACES, STATES, getPlaceById, getStateById } from '@/lib/places';
 import { ORIGIN_CITIES, getOriginById } from '@/lib/origins';
@@ -32,6 +32,17 @@ const TRAVEL_MODE_OPTIONS = [
   { id: 'bus' as const, label: 'Bus', icon: Bus },
   { id: 'cab' as const, label: 'Cab', icon: Car },
 ];
+
+const TRIP_TYPES = [
+  { id: 'general' as const,    label: 'General',    emoji: '🗺️' },
+  { id: 'pilgrimage' as const, label: 'Pilgrimage', emoji: '🙏' },
+  { id: 'family' as const,     label: 'Family',     emoji: '👨‍👩‍👧' },
+  { id: 'honeymoon' as const,  label: 'Honeymoon',  emoji: '💑' },
+  { id: 'solo' as const,       label: 'Solo',       emoji: '🎒' },
+  { id: 'friends' as const,    label: 'Friends',    emoji: '🤝' },
+];
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const COST_ITEMS = [
   { key: 'travel' as const, label: 'Travel', icon: Train, color: 'text-sky-400' },
@@ -66,6 +77,7 @@ function ItineraryContent() {
   const [showAuth, setShowAuth] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState<number | null>(null);
 
   // Fetch saved trip count for the header badge
@@ -116,19 +128,25 @@ function ItineraryContent() {
   const handleGenerate = useCallback(() => {
     if (selectedPlaces.length === 0) return;
     setIsGenerating(true);
+    setGenerateError(null);
     setLoadingMsgIndex(0);
     const interval = setInterval(() => {
       setLoadingMsgIndex(i => Math.min(i + 1, LOADING_MESSAGES.length - 1));
     }, 280);
     setTimeout(() => {
       clearInterval(interval);
-      const result = generateItinerary(selectedPlaces, options);
-      setItinerary(result);
-      setGenerated(true);
-      setIsGenerating(false);
-      setTimeout(() => {
-        document.getElementById('itinerary-result')?.scrollIntoView({ behavior: 'smooth' });
-      }, 80);
+      try {
+        const result = generateItinerary(selectedPlaces, options);
+        setItinerary(result);
+        setGenerated(true);
+        setIsGenerating(false);
+        setTimeout(() => {
+          document.getElementById('itinerary-result')?.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      } catch (err) {
+        setIsGenerating(false);
+        setGenerateError(err instanceof Error ? err.message : 'Something went wrong. Please try again or select different destinations.');
+      }
     }, 1400);
   }, [selectedPlaces, options]);
 
@@ -179,16 +197,9 @@ function ItineraryContent() {
   const handleShare = async () => {
     if (!itinerary) return;
     const origin = getOriginById(options.originCityId);
-    const text = `${options.numDays}-day India trip from ${origin?.name ?? 'home'}: ${itinerary.route.join(' → ')}. Total ≈ ₹${itinerary.totalEstimatedCost.total.toLocaleString()} for ${options.groupSize}. Planned with Tourisma.`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'My India Trip', text, url: location.href });
-      } else {
-        await navigator.clipboard.writeText(text + '\n' + location.href);
-        setShareMsg('Copied to clipboard!');
-        setTimeout(() => setShareMsg(null), 2500);
-      }
-    } catch { /* user cancelled */ }
+    const text = `Check out my ${options.numDays}-day India trip from ${origin?.name ?? 'home'}: ${itinerary.route.join(' → ')}. Total ≈ ₹${itinerary.totalEstimatedCost.total.toLocaleString()} for ${options.groupSize}. 🗺️ Planned with Tourisma\n${location.href}`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
   };
 
   const handleSaveTrip = async () => {
@@ -469,6 +480,41 @@ function ItineraryContent() {
             </div>
           </div>
 
+          {/* Trip type */}
+          <div className="mt-4 bg-white/3 border border-white/8 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🗺️</span>
+              <label className="text-sm font-bold text-white">Trip Type</label>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {TRIP_TYPES.map(t => (
+                <button key={t.id} onClick={() => setOptions({ tripType: t.id })}
+                  className={`flex items-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-bold transition-all
+                    ${options.tripType === t.id ? 'bg-white text-[#0A0A0B]' : 'bg-white/5 text-white/60 border border-white/10 hover:border-white/20'}`}>
+                  <span>{t.emoji}</span>{t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Travel month */}
+          <div className="mt-4 bg-white/3 border border-white/8 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-orange-400" strokeWidth={2.5} />
+              <label className="text-sm font-bold text-white">Travel Month</label>
+              <span className="text-xs text-white/40 ml-auto">used for seasonal alerts</span>
+            </div>
+            <div className="grid grid-cols-6 gap-1.5">
+              {MONTHS.map((m, i) => (
+                <button key={m} onClick={() => setOptions({ travelMonth: i + 1 })}
+                  className={`py-2 rounded-xl text-xs font-bold transition-all
+                    ${options.travelMonth === i + 1 ? 'bg-orange-500 text-white' : 'bg-white/5 text-white/50 border border-white/8 hover:border-orange-500/30'}`}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Optimise for */}
           <div className="mt-4 bg-white/3 border border-white/8 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -533,9 +579,40 @@ function ItineraryContent() {
           </div>
         )}
 
+        {/* Generation error */}
+        {generateError && !isGenerating && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="flex gap-3 p-5 bg-red-500/10 border border-red-500/30 rounded-2xl">
+            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+            <div className="flex-1">
+              <p className="text-red-300 font-bold text-sm">Could not generate itinerary</p>
+              <p className="text-red-200/60 text-sm mt-0.5">{generateError}</p>
+              <button onClick={() => { setGenerateError(null); handleGenerate(); }}
+                className="mt-3 text-xs font-bold text-red-400 hover:text-red-300 underline">
+                Try again
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Generated itinerary */}
         {generated && itinerary && !isGenerating && (
           <div id="itinerary-result" className="space-y-5">
+            {/* Seasonal warnings */}
+            {selectedPlaces
+              .filter(p => p.openMonths && !p.openMonths.includes(options.travelMonth))
+              .map(p => (
+                <motion.div key={p.id}
+                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+                  <div>
+                    <p className="text-amber-300 font-bold text-sm">{p.emoji} {p.name} — Seasonal Alert</p>
+                    <p className="text-amber-200/70 text-sm mt-0.5">{p.closedWarning}</p>
+                  </div>
+                </motion.div>
+              ))
+            }
             {/* Summary */}
             <motion.section
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -580,6 +657,23 @@ function ItineraryContent() {
                       <ArrowRight className="w-4 h-4 text-white/20 flex-shrink-0" strokeWidth={2.5} />
                       <span className="bg-orange-500/20 border border-orange-500/30 px-3 py-1.5 rounded-full text-sm font-bold text-orange-300 whitespace-nowrap">{origin.name}</span>
                     </>
+                  )}
+                </div>
+
+                {/* Budget hero — front and center */}
+                <div className="mt-5 flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 bg-black/30 rounded-xl border border-white/8">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-white">₹{Math.round(itinerary.totalEstimatedCost.total / options.groupSize).toLocaleString()}</span>
+                    <span className="text-white/40 text-sm font-semibold">/person</span>
+                  </div>
+                  <div className="h-8 w-px bg-white/10 hidden sm:block" />
+                  <div className="text-sm text-white/50">
+                    Total <span className="font-bold text-white/80">₹{itinerary.totalEstimatedCost.total.toLocaleString()}</span> for {options.groupSize} traveller{options.groupSize > 1 ? 's' : ''} · {options.numDays} days · <span className="capitalize">{options.stayType}</span> stay
+                  </div>
+                  {options.tripType !== 'general' && (
+                    <span className="sm:ml-auto inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/25 text-orange-300">
+                      {TRIP_TYPES.find(t => t.id === options.tripType)?.emoji} {TRIP_TYPES.find(t => t.id === options.tripType)?.label} trip
+                    </span>
                   )}
                 </div>
               </div>
@@ -973,7 +1067,7 @@ function ItineraryContent() {
               </button>
               <button onClick={handleShare} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Share2 className="w-4 h-4" strokeWidth={2.5} />
-                Share
+                WhatsApp
               </button>
               <button onClick={() => typeof window !== 'undefined' && window.print()} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Clock className="w-4 h-4" strokeWidth={2.5} />

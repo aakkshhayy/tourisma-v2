@@ -1,0 +1,41 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0A0A0B"/>
+  <!-- Grid pattern -->
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.4"/>
+  <!-- Orange glow -->
+  <ellipse cx="300" cy="200" rx="400" ry="300" fill="#F97316" fill-opacity="0.15" filter="url(#blur1)"/>
+  <ellipse cx="900" cy="450" rx="350" ry="250" fill="#FBBF24" fill-opacity="0.10" filter="url(#blur2)"/>
+  <defs>
+    <filter id="blur1"><feGaussianBlur stdDeviation="80"/></filter>
+    <filter id="blur2"><feGaussianBlur stdDeviation="80"/></filter>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="textGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="50%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#FDE68A"/>
+    </linearGradient>
+  </defs>
+  <!-- Logo icon -->
+  <rect x="80" y="60" width="56" height="56" rx="16" fill="url(#textGrad)"/>
+  <text x="108" y="97" text-anchor="middle" font-size="28" fill="white">🧭</text>
+  <!-- Brand name -->
+  <text x="152" y="102" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="white" opacity="0.9">Tourisma</text>
+  <!-- Main headline -->
+  <text x="80" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="900" fill="white">Plan Your Perfect</text>
+  <text x="80" y="330" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="900" fill="url(#textGrad)">India Trip</text>
+  <!-- Subline -->
+  <text x="80" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="rgba(255,255,255,0.45)">AI-powered itineraries · Real routes · Instant cost estimates</text>
+  <!-- Badges -->
+  <rect x="80" y="450" width="200" height="44" rx="22" fill="rgba(249,115,22,0.15)" stroke="rgba(249,115,22,0.3)" stroke-width="1.5"/>
+  <text x="180" y="478" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#FB923C">230+ destinations</text>
+  <rect x="296" y="450" width="170" height="44" rx="22" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+  <text x="381" y="478" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="rgba(255,255,255,0.5)">29 states</text>
+  <rect x="480" y="450" width="130" height="44" rx="22" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+  <text x="545" y="478" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="rgba(255,255,255,0.5)">Free to use</text>
+  <!-- Right decoration emojis -->
+  <text x="900" y="220" font-size="120" opacity="0.15">🏔️</text>
+  <text x="1000" y="380" font-size="100" opacity="0.12">🛕</text>
+  <text x="860" y="420" font-size="80" opacity="0.10">🏖️</text>
+</svg>

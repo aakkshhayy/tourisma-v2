@@ -1832,6 +1832,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 32.228, lng: 78.073 },
     emoji: '🏔️',
     highlights: ['Key Monastery', 'Chandratal Lake', 'Pin Valley snow leopards', 'Fossil village Langza', 'World\'s highest post office', 'Stargazing at Kaza'],
+    openMonths: [6, 7, 8, 9, 10],
+    closedWarning: 'Spiti Valley is only accessible June–October. The Rohtang Pass and Kunzum Pass close due to heavy snow from November onwards. Do not plan a road trip here in winter.',
   },
   {
     id: 'hp_kasol',
@@ -4234,6 +4236,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 30.530, lng: 79.566 },
     emoji: '⛷️',
     highlights: ['Auli ski slopes', 'Asia\'s longest cable car', 'Nanda Devi viewpoint', 'Gurso Bugyal trek', 'Artificial snow lake'],
+    openMonths: [1, 2, 3, 4, 5, 6],
+    closedWarning: 'Auli is best for skiing January–March. Heavy snow makes cable car access difficult July–August. The ski season officially runs January to March.',
   },
   {
     id: 'uk_kedarnath',
@@ -4262,6 +4266,8 @@ export const PLACES: TouristPlace[] = [
     emoji: '🛕',
     highlights: ['Kedarnath Jyotirlinga darshan', 'Himalayan backdrop at sunrise', 'Vasuki Tal trek', 'Gandhi Sarovar', 'Gaurikund hot spring', 'Bhairavnath Temple'],
     aliases: ['Kedar', 'Kedarnath Dham', 'Char Dham Kedarnath'],
+    openMonths: [5, 6, 9, 10],
+    closedWarning: 'Kedarnath temple is closed November–April due to heavy snowfall. It opens in May (Akshaya Tritiya) and closes in November (Diwali).',
   },
   {
     id: 'uk_badrinath',
@@ -4290,6 +4296,8 @@ export const PLACES: TouristPlace[] = [
     emoji: '🛕',
     highlights: ['Badrinath Vishnu temple darshan', 'Tapt Kund (holy hot spring)', 'Mana — last Indian village', 'Vasudhara Falls', 'Satopanth Lake trek', 'Bheem Pul natural bridge'],
     aliases: ['Badri', 'Badrinath Dham', 'Char Dham Badrinath'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Badrinath temple closes November–April. The road from Joshimath is also shut due to snow. Plan your visit between May and October.',
   },
 
   // ─── MADHYA PRADESH ─────────────────────────────────────────────────────────
@@ -5119,6 +5127,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 34.152, lng: 77.577 },
     emoji: '🏔️',
     highlights: ['Leh Palace', 'Shanti Stupa sunset', 'Main Bazaar walk', 'Khardung La (5,359m)', 'Magnetic Hill', 'Hall of Fame museum'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Ladakh roads (Manali–Leh and Srinagar–Leh) are closed November–April due to heavy snowfall. Fly into Leh if visiting in winter, but expect limited facilities.',
   },
   {
     id: 'la_pangong',
@@ -5146,6 +5156,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 33.762, lng: 78.640 },
     emoji: '💎',
     highlights: ['Spangmik camp', 'Chang La pass', 'Lake colour change', '3 Idiots filming spot', 'Star-filled night sky'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Pangong Lake is accessible only May–October. The road from Leh freezes completely in winter and the area gets cut off.',
   },
   {
     id: 'la_nubra',
@@ -5173,6 +5185,8 @@ export const PLACES: TouristPlace[] = [
     coordinates: { lat: 34.677, lng: 77.572 },
     emoji: '🐪',
     highlights: ['Hunder Bactrian camel ride', 'Diskit 32m Buddha', 'Khardung La cross', 'Panamik hot springs', 'Sumur Yarab Tso lake'],
+    openMonths: [5, 6, 7, 8, 9, 10],
+    closedWarning: 'Nubra Valley is accessible only May–October. Khardung La pass (5,359m) remains closed in winter.',
   },
   {
     id: 'la_hemis',
