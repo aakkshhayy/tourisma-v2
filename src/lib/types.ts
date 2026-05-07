@@ -25,6 +25,7 @@ export interface TouristPlace {
   coordinates: { lat: number; lng: number };
   emoji: string;
   highlights: string[];
+  aliases?: string[];
 }
 
 export interface StateInfo {

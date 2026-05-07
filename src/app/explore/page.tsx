@@ -41,7 +41,9 @@ export default function ExplorePage() {
         || p.name.toLowerCase().includes(q)
         || p.tagline.toLowerCase().includes(q)
         || p.description.toLowerCase().includes(q)
-        || stateInfo?.name.toLowerCase().includes(q);
+        || stateInfo?.name.toLowerCase().includes(q)
+        || p.aliases?.some(a => a.toLowerCase().includes(q))
+        || p.highlights.some(h => h.toLowerCase().includes(q));
       const matchesState = !selectedState || p.state === selectedState;
       const matchesCategory = !selectedCategory || p.category === selectedCategory;
       return matchesSearch && matchesState && matchesCategory;

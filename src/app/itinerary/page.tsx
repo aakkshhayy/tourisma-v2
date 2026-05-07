@@ -80,9 +80,14 @@ function ItineraryContent() {
   useEffect(() => {
     const fromParam = searchParams.get('from');
     const durationParam = searchParams.get('duration');
+    const placeParam = searchParams.get('place');
     const editId = searchParams.get('edit');
     if (fromParam) setOptions({ originCityId: fromParam });
     if (durationParam) setOptions({ numDays: parseInt(durationParam) || 5 });
+    if (placeParam && !editId) {
+      const p = getPlaceById(placeParam);
+      if (p) { clearSelection(); addPlace(p); }
+    }
     if (editId) {
       supabase.from('saved_trips').select('itinerary').eq('id', editId).maybeSingle()
         .then(({ data }) => {
@@ -102,7 +107,9 @@ function ItineraryContent() {
     if (!q) return PLACES;
     return PLACES.filter(p => {
       const stateName = getStateById(p.state)?.name?.toLowerCase() ?? '';
-      return p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q) || stateName.includes(q);
+      return p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q) || stateName.includes(q)
+        || (p.aliases?.some(a => a.toLowerCase().includes(q)) ?? false)
+        || p.highlights.some(h => h.toLowerCase().includes(q));
     });
   }, [placeSearch]);
 
