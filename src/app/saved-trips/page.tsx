@@ -9,10 +9,13 @@ import {
   Ticket, Package, Lightbulb, Route, Pencil, StickyNote, Link2, Share2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, SavedTrip } from '@/lib/supabase';
 import AuthModal from '@/components/AuthModal';
 import type { Itinerary } from '@/lib/types';
+import { getPlaceImage } from '@/lib/placeImages';
+import { getPlaceById } from '@/lib/places';
 
 const BUDGET_LABELS: Record<string, string> = {
   budget: '🎒 Budget',
@@ -196,8 +199,24 @@ export default function SavedTripsPage() {
                   {/* Card header — always visible, click to expand */}
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : trip.id)}
-                    className="w-full text-left p-6">
-                    <div className="flex items-start justify-between gap-4">
+                    className="w-full text-left">
+                    {(() => {
+                      const placeIds = (itin?.days ?? []).flatMap(d => d.places.map((p: { id: string }) => p.id)).slice(0, 4);
+                      const imgs = placeIds.map((id: string) => getPlaceImage(id)).filter(Boolean) as string[];
+                      return imgs.length > 0 ? (
+                        <div className="relative h-28 overflow-hidden rounded-t-2xl">
+                          <div className="flex h-full gap-0.5">
+                            {imgs.map((src, idx) => (
+                              <div key={idx} className="relative flex-1 overflow-hidden">
+                                <Image src={src} alt="" fill sizes="25vw" className="object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#111113]" />
+                        </div>
+                      ) : null;
+                    })()}
+                    <div className="flex items-start justify-between gap-4 p-6">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-white text-base leading-snug mb-2">{trip.title}</h3>
                         <div className="flex flex-wrap items-center gap-3 text-sm text-white/40">

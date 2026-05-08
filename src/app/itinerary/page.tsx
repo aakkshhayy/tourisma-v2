@@ -950,32 +950,29 @@ function ItineraryContent() {
 
                           {/* Time-block schedule using each place's highlights */}
                           {day.places.length > 0 && (() => {
-                            const blocks: { label: string; emoji: string; items: string[] }[] = [
-                              { label: 'Morning',   emoji: '🌅', items: [] },
-                              { label: 'Afternoon', emoji: '☀️', items: [] },
-                              { label: 'Evening',   emoji: '🌆', items: [] },
+                            const blocks: { label: string; emoji: string; color: string; bg: string; items: string[] }[] = [
+                              { label: 'Morning',   emoji: '🌅', color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/15',  items: [] },
+                              { label: 'Afternoon', emoji: '☀️', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/15', items: [] },
+                              { label: 'Evening',   emoji: '🌆', color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/15', items: [] },
                             ];
-                            // Round-robin highlights from each place across the 3 blocks
                             const highlights = day.places.flatMap(p => (p.highlights ?? []).slice(0, 3));
-                            highlights.slice(0, 6).forEach((h, i) => {
-                              blocks[i % 3].items.push(h);
-                            });
-                            // Fallback: if no highlights, use place names
+                            highlights.slice(0, 6).forEach((h, i) => { blocks[i % 3].items.push(h); });
                             if (highlights.length === 0) {
-                              day.places.forEach((p, i) => {
-                                blocks[i % 3].items.push(p.name);
-                              });
+                              day.places.forEach((p, i) => { blocks[i % 3].items.push(p.name); });
                             }
                             return (
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                                 {blocks.map(b => b.items.length > 0 && (
-                                  <div key={b.label} className="bg-[#0d0d10] border border-white/5 rounded-lg p-3">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5 flex items-center gap-1">
+                                  <div key={b.label} className={`border rounded-xl p-3.5 ${b.bg}`}>
+                                    <p className={`text-[10px] font-extrabold uppercase tracking-widest mb-2 flex items-center gap-1.5 ${b.color}`}>
                                       <span>{b.emoji}</span> {b.label}
                                     </p>
-                                    <ul className="space-y-0.5">
+                                    <ul className="space-y-1">
                                       {b.items.map((it, i) => (
-                                        <li key={i} className="text-xs text-white/70 leading-snug">· {it}</li>
+                                        <li key={i} className="text-xs text-white/70 leading-snug flex items-start gap-1.5">
+                                          <span className={`${b.color} font-bold mt-0.5`}>·</span>
+                                          {it}
+                                        </li>
                                       ))}
                                     </ul>
                                   </div>
@@ -1138,10 +1135,6 @@ function ItineraryContent() {
               <button onClick={handleShare} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Share2 className="w-4 h-4" strokeWidth={2.5} />
                 WhatsApp
-              </button>
-              <button onClick={() => typeof window !== 'undefined' && window.print()} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
-                <Clock className="w-4 h-4" strokeWidth={2.5} />
-                Print
               </button>
               <button onClick={handleSaveTrip} disabled={saveStatus === 'saving' || saveStatus === 'saved'}
                 className={`flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all

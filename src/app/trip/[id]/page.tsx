@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   MapPin, ArrowRight, IndianRupee, Sparkles, Train, Hotel, Utensils,
   Ticket, Package, Compass,
@@ -102,24 +103,43 @@ export default async function SharedTripPage({ params }: PageProps) {
   const groupSize = meta?.options?.groupSize ?? 1;
   const stayType = meta?.options?.stayType ?? 'mid';
   const perPerson = Math.round(itinerary.totalEstimatedCost.total / groupSize);
+  const firstPlaceId = itinerary.days[0]?.places[0]?.id;
 
   return (
     <main className="min-h-screen bg-[#0A0A0B]">
       {/* Hero */}
-      <div className="relative bg-[#0d0d10] border-b border-white/5 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold mb-6">
-            <Sparkles className="w-3 h-3" strokeWidth={2.5} />
+      <div className="relative min-h-[420px] flex items-end overflow-hidden">
+        {/* Background photo */}
+        {firstPlaceId && getPlaceImage(firstPlaceId) && (
+          <div className="absolute inset-0">
+            <Image
+              src={getPlaceImage(firstPlaceId)!}
+              alt={trip.title}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0B] via-[#0A0A0B]/70 to-[#0A0A0B]/20" />
+          </div>
+        )}
+        {!firstPlaceId && (
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-[#0d0d10] to-[#0A0A0B]" />
+        )}
+
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white/80 text-xs font-bold mb-6">
+            <Sparkles className="w-3 h-3 text-orange-400" strokeWidth={2.5} />
             Shared itinerary · Tourisma
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">{trip.title}</h1>
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-white mb-5 drop-shadow-lg leading-tight">{trip.title}</h1>
 
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          {/* Route pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-8">
             {itinerary.route.map((place, i) => (
               <div key={i} className="flex items-center gap-2">
-                {i > 0 && <ArrowRight className="w-4 h-4 text-white/20" strokeWidth={2.5} />}
-                <span className="bg-white/10 border border-white/15 px-3 py-1.5 rounded-full text-sm font-bold text-white">
+                {i > 0 && <ArrowRight className="w-3.5 h-3.5 text-orange-400/70" strokeWidth={2.5} />}
+                <span className="bg-black/50 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full text-sm font-bold text-white">
                   <MapPin className="w-3 h-3 inline mr-1 -mt-0.5 text-orange-400" strokeWidth={2.5} />
                   {place}
                 </span>
@@ -127,22 +147,21 @@ export default async function SharedTripPage({ params }: PageProps) {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 bg-black/30 rounded-xl border border-white/8 mb-6">
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-extrabold text-white">₹{perPerson.toLocaleString()}</span>
-              <span className="text-white/40 text-sm font-semibold">/person</span>
+          {/* Cost + meta bar */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="bg-black/60 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-white">₹{perPerson.toLocaleString()}</span>
+              <span className="text-white/50 text-sm font-semibold">/person</span>
             </div>
-            <div className="h-8 w-px bg-white/10 hidden sm:block" />
-            <div className="text-sm text-white/50">
-              Total <span className="font-bold text-white/80">₹{itinerary.totalEstimatedCost.total.toLocaleString()}</span> for {groupSize} traveller{groupSize > 1 ? 's' : ''} · {trip.duration ?? itinerary.days.length} days · <span className="capitalize">{stayType}</span> stay
+            <div className="text-sm text-white/60 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3">
+              Total <span className="font-bold text-white">₹{itinerary.totalEstimatedCost.total.toLocaleString()}</span> · {groupSize} traveller{groupSize > 1 ? 's' : ''} · {trip.duration ?? itinerary.days.length} days · <span className="capitalize">{stayType}</span> stay
             </div>
+            <Link href="/itinerary" className="sm:ml-auto inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
+              <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+              Plan your own trip
+              <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </Link>
           </div>
-
-          <Link href="/itinerary" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all">
-            <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-            Plan your own trip
-            <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-          </Link>
         </div>
       </div>
 
@@ -178,29 +197,44 @@ export default async function SharedTripPage({ params }: PageProps) {
           </p>
         </section>
 
-        {itinerary.days.map((day, i) => (
-          <section key={i} className="bg-[#111113] border border-[#222226] rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-extrabold text-sm">{day.day}</span>
+        {itinerary.days.map((day, i) => {
+          const firstPlace = day.places[0];
+          const dayImg = firstPlace ? getPlaceImage(firstPlace.id) : undefined;
+          return (
+            <section key={i} className="bg-[#111113] border border-[#222226] rounded-2xl overflow-hidden">
+              {/* Day header with subtle photo background */}
+              <div className="relative h-16 flex items-center px-6 overflow-hidden">
+                {dayImg && (
+                  <>
+                    <Image src={dayImg} alt={firstPlace?.name ?? ''} fill sizes="100vw" className="object-cover opacity-20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#111113] via-[#111113]/80 to-transparent" />
+                  </>
+                )}
+                <div className="relative flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center flex-shrink-0 shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+                    <span className="text-white font-extrabold text-sm">{day.day}</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Day {day.day}</p>
+                    <h3 className="text-white font-extrabold leading-tight">{day.places.map(p => p.name).join(' + ')}</h3>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-orange-400">Day {day.day}</p>
-                <h3 className="text-white font-extrabold">{day.places.map(p => p.name).join(' + ')}</h3>
+              <div className="p-6 pt-4">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {day.places.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-full text-white/70">
+                      {p.emoji} {p.name}
+                    </span>
+                  ))}
+                </div>
+                {day.travelNote && (
+                  <p className="text-white/40 text-xs leading-relaxed border-l-2 border-orange-500/30 pl-3">{day.travelNote}</p>
+                )}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {day.places.map(p => (
-                <span key={p.id} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-full text-white/70">
-                  {p.emoji} {p.name}
-                </span>
-              ))}
-            </div>
-            {day.travelNote && (
-              <p className="text-white/40 text-xs leading-relaxed">{day.travelNote}</p>
-            )}
-          </section>
-        ))}
+            </section>
+          );
+        })}
 
         {itinerary.tips.length > 0 && (
           <section className="bg-[#111113] border border-[#222226] rounded-2xl p-6">

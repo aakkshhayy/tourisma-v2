@@ -155,23 +155,25 @@ export default async function DestinationPage({ params }: PageProps) {
           {/* Main content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Description */}
-            <section>
-              <h2 className="text-xl font-bold text-white mb-4">About</h2>
-              <p className="text-white/60 leading-relaxed">{place.description}</p>
+            <section className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-3">About</h2>
+              <p className="text-white/70 leading-relaxed text-base">{place.description}</p>
             </section>
 
             {/* Highlights */}
             {place.highlights.length > 0 && (
               <section>
-                <h2 className="text-xl font-bold text-white mb-4">Highlights</h2>
-                <ul className="space-y-2">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-4">Must-see highlights</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {place.highlights.map((h, i) => (
-                    <li key={i} className="flex items-start gap-3 text-white/60">
-                      <Star className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" strokeWidth={2.2} fill="currentColor" />
-                      <span className="text-sm leading-relaxed">{h}</span>
-                    </li>
+                    <div key={i} className="flex items-start gap-3 bg-white/3 border border-white/8 hover:border-orange-500/20 rounded-xl p-4 transition-colors group">
+                      <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-orange-500/25 transition-colors">
+                        <Star className="w-3.5 h-3.5 text-orange-400" strokeWidth={2.2} fill="currentColor" />
+                      </div>
+                      <span className="text-sm text-white/70 leading-relaxed">{h}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </section>
             )}
 
@@ -198,10 +200,10 @@ export default async function DestinationPage({ params }: PageProps) {
             {/* Nearby attractions */}
             {place.nearbyAttractions.length > 0 && (
               <section>
-                <h2 className="text-xl font-bold text-white mb-4">Nearby Attractions</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-4">Nearby attractions</h2>
                 <div className="flex flex-wrap gap-2">
                   {place.nearbyAttractions.map((a, i) => (
-                    <span key={i} className="text-sm text-white/60 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                    <span key={i} className="text-sm text-white/70 bg-white/5 border border-white/10 hover:border-orange-500/30 hover:bg-orange-500/5 px-3 py-1.5 rounded-xl transition-colors cursor-default">
                       {a}
                     </span>
                   ))}
@@ -212,20 +214,28 @@ export default async function DestinationPage({ params }: PageProps) {
             {/* Travel options */}
             {place.travelOptions.length > 0 && (
               <section>
-                <h2 className="text-xl font-bold text-white mb-4">How to Get Here</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-4">How to get here</h2>
                 <div className="space-y-2">
-                  {place.travelOptions.slice(0, 4).map((opt, i) => (
-                    <div key={i} className="flex items-center gap-3 bg-[#111113] border border-[#222226] rounded-xl px-4 py-3">
-                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                        {opt.mode === 'flight' ? <Plane className="w-3.5 h-3.5 text-white/60" strokeWidth={2.2} /> : <Train className="w-3.5 h-3.5 text-white/60" strokeWidth={2.2} />}
+                  {place.travelOptions.slice(0, 4).map((opt, i) => {
+                    const isFlight = opt.mode === 'flight';
+                    return (
+                      <div key={i} className="flex items-center gap-4 bg-[#111113] border border-[#222226] hover:border-orange-500/20 rounded-xl px-4 py-3.5 transition-colors">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isFlight ? 'bg-sky-500/15' : 'bg-emerald-500/15'}`}>
+                          {isFlight
+                            ? <Plane className="w-4 h-4 text-sky-400" strokeWidth={2.2} />
+                            : <Train className="w-4 h-4 text-emerald-400" strokeWidth={2.2} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-bold">{opt.from} → {opt.to}</p>
+                          <p className="text-white/40 text-xs capitalize mt-0.5">{opt.mode} · {opt.duration}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-orange-400 font-extrabold text-sm">₹{opt.approxCost.toLocaleString()}</p>
+                          <p className="text-white/25 text-[10px]">approx.</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-white text-sm font-semibold">{opt.from} → {opt.to}</p>
-                        <p className="text-white/40 text-xs capitalize">{opt.mode} · {opt.duration}</p>
-                      </div>
-                      <p className="text-orange-400 text-sm font-bold">₹{opt.approxCost.toLocaleString()}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -247,11 +257,11 @@ export default async function DestinationPage({ params }: PageProps) {
 
             {/* Best time */}
             <div className="bg-[#111113] border border-[#222226] rounded-2xl p-5">
-              <h3 className="font-bold text-white mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-orange-400" strokeWidth={2.5} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
                 Best Time to Visit
-              </h3>
-              <p className="text-white/60 text-sm">{place.bestTimeToVisit}</p>
+              </p>
+              <p className="text-white/70 text-sm leading-relaxed">{place.bestTimeToVisit}</p>
             </div>
 
             {/* Transport hubs */}
