@@ -1,13 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight } from 'lucide-react';
-import { PLACES } from '@/lib/places';
+import { PLACES, getStateById } from '@/lib/places';
 import { ORIGIN_CITIES } from '@/lib/origins';
+import { CIRCUITS } from '@/lib/circuits';
+import { getPlaceImage } from '@/lib/placeImages';
 import QuickPlanWizard from '@/components/QuickPlanWizard';
+
+// Map a SEASONAL_ROUTES "to" field (a place or state name) → an existing place's image.
+// Looks up by name match, alias match, or state-name match — first hit wins.
+function getRouteImage(routeTo: string): { src?: string; placeId?: string } {
+  const target = routeTo.toLowerCase();
+  // 1. Direct name match
+  let hit = PLACES.find(p => p.name.toLowerCase() === target);
+  // 2. Substring match on name
+  if (!hit) hit = PLACES.find(p => p.name.toLowerCase().includes(target));
+  // 3. Alias match
+  if (!hit) hit = PLACES.find(p => p.aliases?.some(a => a.toLowerCase() === target));
+  // 4. State-name match (fuzzy) — pick the most photogenic place in that state
+  if (!hit) {
+    const candidates = PLACES.filter(p => {
+      const st = getStateById(p.state);
+      const stateName = st?.name.toLowerCase() ?? '';
+      return stateName === target || stateName.includes(target) || target.includes(stateName);
+    });
+    if (candidates.length > 0) {
+      hit = [...candidates].sort((a, b) => (b.recommendedDays ?? 0) - (a.recommendedDays ?? 0))[0];
+    }
+  }
+  if (!hit) return {};
+  return { src: getPlaceImage(hit.id), placeId: hit.id };
+}
 
 const ANIMATED_WORDS = ['India Trip', 'Weekend Getaway', 'Adventure', 'Himalayan Trek', 'Beach Escape'];
 
@@ -255,34 +283,49 @@ export default function Home() {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {popularRoutes.map((route, i) => (
-            <motion.button
-              key={i}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              viewport={{ once: true }}
-              onClick={() => {
-                const fromId = ORIGIN_CITIES.find(c => c.name === route.from)?.id ?? '';
-                router.push(`/itinerary?from=${fromId}&duration=7`);
-              }}
-              className="group text-left bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl p-6 transition-all hover:shadow-[0_0_30px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-3xl">{route.emoji}</span>
-                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" strokeWidth={2.5} />
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-white">{route.from}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-orange-400" strokeWidth={2.5} />
-                <span className="font-bold text-white">{route.to}</span>
-              </div>
-              <p className="text-white/40 text-sm mb-3">{route.description}</p>
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-400/70 bg-orange-500/10 px-2.5 py-1 rounded-full">
-                <Calendar className="w-3 h-3" strokeWidth={2.5} />
-                {route.duration}
-              </span>
-            </motion.button>
-          ))}
+          {popularRoutes.map((route, i) => {
+            const { src: routeImg, placeId } = getRouteImage(route.to);
+            return (
+              <motion.button
+                key={i}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                viewport={{ once: true }}
+                onClick={() => {
+                  const fromId = ORIGIN_CITIES.find(c => c.name === route.from)?.id ?? '';
+                  if (placeId) router.push(`/itinerary?from=${fromId}&place=${placeId}&duration=7`);
+                  else router.push(`/itinerary?from=${fromId}&duration=7`);
+                }}
+                className="group text-left bg-[#111113] border border-[#222226] hover:border-orange-500/30 rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
+                <div className="relative aspect-[16/10] bg-[#1a1a1e] overflow-hidden">
+                  {routeImg ? (
+                    <Image src={routeImg} alt={route.to} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl">{route.emoji}</div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+                  <div className="absolute top-3 right-3">
+                    <ChevronRight className="w-5 h-5 text-white/80 bg-black/40 backdrop-blur-md rounded-full p-1 group-hover:bg-orange-500 group-hover:text-white transition-all" strokeWidth={2.5} />
+                  </div>
+                  <div className="absolute bottom-3 left-4 right-4 pointer-events-none">
+                    <div className="flex items-center gap-1.5 mb-1 text-sm">
+                      <span className="font-bold text-white/80 drop-shadow">{route.from}</span>
+                      <ArrowRight className="w-3 h-3 text-orange-400" strokeWidth={2.5} />
+                      <span className="font-extrabold text-white drop-shadow">{route.to}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className="text-white/50 text-sm leading-relaxed mb-3">{route.description}</p>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-400/80 bg-orange-500/10 px-2.5 py-1 rounded-full">
+                    <Calendar className="w-3 h-3" strokeWidth={2.5} />
+                    {route.duration}
+                  </span>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </section>
 
@@ -303,23 +346,31 @@ export default function Home() {
             <p className="text-white/40 max-w-xl mx-auto">Char Dham, Sapta Puri, Buddhist Circuit — curated multi-temple yatras with day-by-day plans</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-            {[
-              { id: 'do-dham-yatra',          name: 'Do Dham',        emoji: '🕉️', days: 7  },
-              { id: 'dwarka-somnath-yatra',   name: 'Dwarka–Somnath', emoji: '🌊', days: 5  },
-              { id: 'sapta-puri-trail',       name: 'Sapta Puri',     emoji: '🛕', days: 10 },
-              { id: 'buddhist-mahaparinirvan',name: 'Buddhist',       emoji: '☸️', days: 8  },
-              { id: 'vaishno-devi-amritsar',  name: 'Vaishno Devi',   emoji: '🙏', days: 6  },
-              { id: 'south-india-temple-trail', name: 'South Temples',emoji: '🛕', days: 9  },
-            ].map((c, i) => (
-              <Link key={c.id} href={`/circuits/${c.id}`}
-                style={{ animationDelay: `${i * 60}ms` }}
-                className="group bg-white/3 border border-white/8 hover:border-orange-500/40 rounded-xl p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-orange-500/5">
-                <div className="text-2xl mb-1.5">{c.emoji}</div>
-                <p className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors leading-tight">{c.name}</p>
-                <p className="text-white/40 text-[10px] mt-0.5">{c.days} days</p>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            {CIRCUITS.map((c, i) => {
+              const firstId = c.placeIds[0];
+              const img = firstId ? getPlaceImage(firstId) : undefined;
+              return (
+                <Link key={c.id} href={`/circuits/${c.id}`}
+                  style={{ animationDelay: `${i * 60}ms` }}
+                  className="group relative bg-[#111113] border border-white/10 hover:border-orange-500/40 rounded-xl overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_0_25px_rgba(249,115,22,0.15)]">
+                  <div className="relative aspect-[16/10] bg-[#1a1a1e] overflow-hidden">
+                    {img && (
+                      <Image src={img} alt={c.name} fill sizes="(min-width: 768px) 33vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${c.gradient} opacity-15 mix-blend-overlay pointer-events-none`} />
+                    <div className="absolute top-2 right-2">
+                      <span className="text-2xl drop-shadow-lg">{c.emoji}</span>
+                    </div>
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <p className="font-extrabold text-white text-sm sm:text-base group-hover:text-orange-300 transition-colors leading-tight drop-shadow">{c.name}</p>
+                      <p className="text-white/70 text-[11px] mt-0.5 drop-shadow">{c.suggestedDays} days · {c.placeIds.length} places</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="text-center">

@@ -19,13 +19,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const place = getPlaceById(id);
   if (!place) return { title: 'Place not found' };
+  const img = getPlaceImage(place.id);
+  const ogImage = img ? `https://tourisma-v2.vercel.app${img}` : 'https://tourisma-v2.vercel.app/og-image.svg';
   return {
     title: `${place.name} — Tourisma`,
     description: place.tagline,
+    keywords: `${place.name.toLowerCase()}, ${place.tagline.toLowerCase()}, ${place.state} travel, india tourism, ${place.category}`,
     openGraph: {
       title: `${place.name} — Tourisma`,
       description: place.tagline,
       type: 'website',
+      siteName: 'Tourisma',
+      images: [{ url: ogImage, width: 800, height: 600, alt: place.name }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: place.name,
+      description: place.tagline,
+      images: [ogImage],
     },
   };
 }

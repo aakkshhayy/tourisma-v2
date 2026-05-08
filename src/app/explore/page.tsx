@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -28,10 +28,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   cultural: 'bg-rose-500/20 text-rose-400 border-rose-500/20',
 };
 
+const PAGE_SIZE = 24;
+
 export default function ExplorePage() {
   const [search, setSearch] = useState('');
   const [selectedState, setSelectedState] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categories = Object.keys(CATEGORY_LABELS);
 
@@ -51,6 +54,12 @@ export default function ExplorePage() {
       return matchesSearch && matchesState && matchesCategory;
     });
   }, [search, selectedState, selectedCategory]);
+
+  // Reset visible count when filters change
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, selectedState, selectedCategory]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   const clearFilters = () => {
     setSearch('');
@@ -160,7 +169,7 @@ export default function ExplorePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map((place, i) => {
+            {visible.map((place, i) => {
               const stateInfo = getStateById(place.state);
               return (
                 <motion.div
@@ -217,6 +226,23 @@ export default function ExplorePage() {
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {/* Load more / total count */}
+        {filtered.length > 0 && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <p className="text-white/30 text-xs font-semibold">
+              Showing <span className="text-white/60">{visible.length}</span> of <span className="text-white/60">{filtered.length}</span> destinations
+            </p>
+            {hasMore && (
+              <button
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 hover:border-orange-500/30 transition-all">
+                Load more
+                <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            )}
           </div>
         )}
       </div>
