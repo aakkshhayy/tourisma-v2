@@ -8,9 +8,9 @@ import {
   Sparkles, Calendar, Users, Hotel, Train, Bus, Car, Plane,
   Wallet, MapPin, Plus, Check, X, ArrowRight, Lightbulb,
   ChevronLeft, Wand2, Loader2, Download, Share2, Bookmark,
-  Search, IndianRupee, Zap, Scale, Trophy, Route, Clock,
+  Search, IndianRupee, Zap, Scale, Trophy, Route,
   Utensils, Ticket, Package, Info, ExternalLink, BedDouble,
-  Navigation, BadgeCheck, AlertTriangle,
+  Navigation, BadgeCheck, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import Image from 'next/image';
 import { PLACES, STATES, getPlaceById, getStateById } from '@/lib/places';
@@ -81,6 +81,8 @@ function ItineraryContent() {
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState<number | null>(null);
+  // Per-day shuffle seeds: incrementing shifts which highlights go to which time block
+  const [daySeeds, setDaySeeds] = useState<Record<number, number>>({});
 
   // Fetch saved trip count for the header badge
   useEffect(() => {
@@ -160,6 +162,7 @@ function ItineraryContent() {
         setItinerary(result);
         setGenerated(true);
         setIsGenerating(false);
+        setDaySeeds({});
         setTimeout(() => {
           document.getElementById('itinerary-result')?.scrollIntoView({ behavior: 'smooth' });
         }, 80);
@@ -167,7 +170,7 @@ function ItineraryContent() {
         setIsGenerating(false);
         setGenerateError(err instanceof Error ? err.message : 'Something went wrong. Please try again or select different destinations.');
       }
-    }, 1400);
+    }, 400);
   }, [selectedPlaces, options]);
 
   const handleReset = () => { setItinerary(null); setGenerated(false); };
@@ -520,15 +523,24 @@ function ItineraryContent() {
           </div>
 
           {/* Generate button */}
-          <button onClick={handleGenerate} disabled={selectedPlaces.length === 0 || isGenerating}
-            className={`mt-5 w-full flex items-center justify-center gap-3 py-5 rounded-xl font-extrabold text-base transition-all
-              ${selectedPlaces.length === 0 || isGenerating
-                ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/8'
-                : 'bg-gradient-to-r from-orange-500 to-amber-400 text-white hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] active:scale-[0.99]'}`}>
-            {isGenerating
-              ? <><Loader2 className="w-5 h-5 animate-spin" strokeWidth={2.5} />Generating…</>
-              : <><Wand2 className="w-5 h-5" strokeWidth={2.5} />Generate Trip Plan<ArrowRight className="w-5 h-5" strokeWidth={2.5} /></>}
-          </button>
+          <div className="mt-5 flex flex-col gap-2">
+            <button onClick={handleGenerate} disabled={selectedPlaces.length === 0 || isGenerating}
+              className={`w-full flex items-center justify-center gap-3 py-5 rounded-xl font-extrabold text-base transition-all
+                ${selectedPlaces.length === 0 || isGenerating
+                  ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/8'
+                  : 'bg-gradient-to-r from-orange-500 to-amber-400 text-white hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] active:scale-[0.99]'}`}>
+              {isGenerating
+                ? <><Loader2 className="w-5 h-5 animate-spin" strokeWidth={2.5} />Generating…</>
+                : generated
+                  ? <><RefreshCw className="w-5 h-5" strokeWidth={2.5} />Regenerate with changes</>
+                  : <><Wand2 className="w-5 h-5" strokeWidth={2.5} />Generate Trip Plan<ArrowRight className="w-5 h-5" strokeWidth={2.5} /></>}
+            </button>
+            {generated && (
+              <button onClick={handleReset} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white/30 hover:text-red-400 transition-colors">
+                Start fresh
+              </button>
+            )}
+          </div>
 
           {selectedPlaces.length === 0 && (
             <div className="mt-4 flex items-center justify-center gap-3 text-sm">
@@ -948,35 +960,54 @@ function ItineraryContent() {
                           </h3>
                           <p className="text-white/50 text-sm mb-4 leading-relaxed">{day.travelNote}</p>
 
-                          {/* Time-block schedule using each place's highlights */}
+                          {/* Time-block schedule — highlights rotate via shuffle seed */}
                           {day.places.length > 0 && (() => {
                             const blocks: { label: string; emoji: string; color: string; bg: string; items: string[] }[] = [
                               { label: 'Morning',   emoji: '🌅', color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/15',  items: [] },
                               { label: 'Afternoon', emoji: '☀️', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/15', items: [] },
                               { label: 'Evening',   emoji: '🌆', color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/15', items: [] },
                             ];
-                            const highlights = day.places.flatMap(p => (p.highlights ?? []).slice(0, 3));
-                            highlights.slice(0, 6).forEach((h, i) => { blocks[i % 3].items.push(h); });
-                            if (highlights.length === 0) {
+                            const allHighlights = day.places.flatMap(p => p.highlights ?? []);
+                            if (allHighlights.length > 0) {
+                              const seed = daySeeds[day.day] ?? 0;
+                              const offset = (seed * 2) % allHighlights.length;
+                              const rotated = [...allHighlights.slice(offset), ...allHighlights.slice(0, offset)];
+                              rotated.slice(0, 6).forEach((h, i) => { blocks[i % 3].items.push(h); });
+                            } else {
                               day.places.forEach((p, i) => { blocks[i % 3].items.push(p.name); });
                             }
                             return (
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                {blocks.map(b => b.items.length > 0 && (
-                                  <div key={b.label} className={`border rounded-xl p-3.5 ${b.bg}`}>
-                                    <p className={`text-[10px] font-extrabold uppercase tracking-widest mb-2 flex items-center gap-1.5 ${b.color}`}>
-                                      <span>{b.emoji}</span> {b.label}
-                                    </p>
-                                    <ul className="space-y-1">
-                                      {b.items.map((it, i) => (
-                                        <li key={i} className="text-xs text-white/70 leading-snug flex items-start gap-1.5">
-                                          <span className={`${b.color} font-bold mt-0.5`}>·</span>
-                                          {it}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                ))}
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Daily plan</p>
+                                  {allHighlights.length > 3 && (
+                                    <button
+                                      onClick={() => setDaySeeds(s => ({ ...s, [day.day]: ((s[day.day] ?? 0) + 1) % Math.ceil(allHighlights.length / 2) }))}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-orange-400 transition-colors"
+                                      title="Shuffle activities"
+                                    >
+                                      <RefreshCw className="w-2.5 h-2.5" strokeWidth={2.5} />
+                                      Shuffle
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                  {blocks.map(b => b.items.length > 0 && (
+                                    <div key={b.label} className={`border rounded-xl p-3.5 ${b.bg}`}>
+                                      <p className={`text-[10px] font-extrabold uppercase tracking-widest mb-2 flex items-center gap-1.5 ${b.color}`}>
+                                        <span>{b.emoji}</span> {b.label}
+                                      </p>
+                                      <ul className="space-y-1">
+                                        {b.items.map((it, i) => (
+                                          <li key={i} className="text-xs text-white/70 leading-snug flex items-start gap-1.5">
+                                            <span className={`${b.color} font-bold mt-0.5`}>·</span>
+                                            {it}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             );
                           })()}
@@ -1124,9 +1155,13 @@ function ItineraryContent() {
 
             {/* Actions */}
             <div className="relative grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <button onClick={handleReset} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-white/20 transition-colors">
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors"
+                title="Scroll back to options and tweak without losing this itinerary"
+              >
                 <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
-                Modify
+                Tweak
               </button>
               <button onClick={() => window.print()} className="flex items-center justify-center gap-2 py-4 rounded-xl border border-white/10 bg-white/3 text-white font-bold text-sm hover:border-orange-500/30 transition-colors">
                 <Download className="w-4 h-4" strokeWidth={2.5} />
