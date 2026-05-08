@@ -73,21 +73,36 @@ export default function ExplorePage() {
     <main className="min-h-screen bg-[#0A0A0B]">
       {/* Header */}
       <div className="relative bg-[#0d0d10] border-b border-white/5 py-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute top-0 left-1/3 w-96 h-96 bg-orange-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-amber-400/8 rounded-full blur-[80px]" />
         <div className="max-w-7xl mx-auto relative">
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}>
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">Destinations</p>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-4">Destinations</p>
+            <h1 className="text-4xl sm:text-6xl font-extrabold text-white mb-5 leading-tight">
               Explore{' '}
               <span className="bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 bg-clip-text text-transparent">
                 India
               </span>
             </h1>
-            <p className="text-white/40 text-lg max-w-xl">
-              {PLACES.length} destinations across {STATES.length} states — find your perfect trip
+            <p className="text-white/50 text-lg max-w-2xl mb-8">
+              {PLACES.length} hand-picked destinations across {STATES.length} states
             </p>
+            {/* Quick stat chips */}
+            <div className="flex flex-wrap gap-3">
+              {[
+                { label: 'Heritage & Temples', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                { label: 'Himalayan Escapes', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+                { label: 'Beach & Islands', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
+                { label: 'Wildlife Safaris', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                { label: 'Sacred Journeys', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+              ].map(chip => (
+                <span key={chip.label} className={`text-xs font-bold px-3 py-1.5 rounded-full border ${chip.color}`}>
+                  {chip.label}
+                </span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
