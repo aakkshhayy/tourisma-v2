@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, Map, Calendar, Bookmark, LogOut, ChevronDown, User, Menu, X } from 'lucide-react';
+import { Compass, Map, Calendar, Bookmark, LogOut, ChevronDown, User, Menu, X, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useItineraryStore } from '@/store/itineraryStore';
 import AuthModal from '@/components/AuthModal';
@@ -19,6 +19,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: 'Home', icon: Compass },
     { href: '/explore', label: 'Explore', icon: Map },
+    { href: '/circuits', label: 'Circuits', icon: Sparkles },
     { href: '/itinerary', label: 'Itinerary', icon: Calendar, badge: selectedPlaces.length },
   ];
 

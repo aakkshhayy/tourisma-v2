@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight } from 'lucide-react';
@@ -282,6 +283,51 @@ export default function Home() {
               </span>
             </motion.button>
           ))}
+        </div>
+      </section>
+
+      {/* Pilgrimage Circuits */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0d0d10] border-y border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }} viewport={{ once: true }}
+            className="text-center mb-12">
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">Sacred journeys</p>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">
+              Pilgrimage{' '}
+              <span className="bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 bg-clip-text text-transparent">
+                Circuits
+              </span>
+            </h2>
+            <p className="text-white/40 max-w-xl mx-auto">Char Dham, Sapta Puri, Buddhist Circuit — curated multi-temple yatras with day-by-day plans</p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+            {[
+              { id: 'do-dham-yatra',          name: 'Do Dham',        emoji: '🕉️', days: 7  },
+              { id: 'dwarka-somnath-yatra',   name: 'Dwarka–Somnath', emoji: '🌊', days: 5  },
+              { id: 'sapta-puri-trail',       name: 'Sapta Puri',     emoji: '🛕', days: 10 },
+              { id: 'buddhist-mahaparinirvan',name: 'Buddhist',       emoji: '☸️', days: 8  },
+              { id: 'vaishno-devi-amritsar',  name: 'Vaishno Devi',   emoji: '🙏', days: 6  },
+              { id: 'south-india-temple-trail', name: 'South Temples',emoji: '🛕', days: 9  },
+            ].map((c, i) => (
+              <Link key={c.id} href={`/circuits/${c.id}`}
+                style={{ animationDelay: `${i * 60}ms` }}
+                className="group bg-white/3 border border-white/8 hover:border-orange-500/40 rounded-xl p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-orange-500/5">
+                <div className="text-2xl mb-1.5">{c.emoji}</div>
+                <p className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors leading-tight">{c.name}</p>
+                <p className="text-white/40 text-[10px] mt-0.5">{c.days} days</p>
+              </Link>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link href="/circuits" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 hover:border-orange-500/30 transition-all">
+              See all 6 circuits
+              <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+            </Link>
+          </div>
         </div>
       </section>
 
