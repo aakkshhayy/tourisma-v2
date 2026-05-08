@@ -195,11 +195,28 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? (typeof window !== 'undefined' ? window.location.origin : '')}/reset-password`,
-    });
+
+    // Build absolute redirect URL — NEXT_PUBLIC_SITE_URL wins (set this on Vercel),
+    // then NEXT_PUBLIC_VERCEL_URL (auto-set by Vercel), then the current origin.
+    const base =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ??
+      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const redirectTo = `${base.replace(/\/$/, '')}/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      // Map common Supabase errors to user-friendly messages
+      if (error.message.toLowerCase().includes('rate limit') || error.status === 429) {
+        setError('Too many reset attempts. Please wait a few minutes and try again.');
+      } else if (error.message.toLowerCase().includes('not allowed') || error.message.toLowerCase().includes('redirect')) {
+        setError('Reset emails are temporarily unavailable. Please contact support.');
+      } else {
+        setError(error.message);
+      }
+      return;
+    }
     setScreen('forgot_sent');
   };
 
