@@ -86,48 +86,134 @@ function clusterPlaces(
   return sortedStates.map(s => byState[s]);
 }
 
-function distributeIntodays(clusters: TouristPlace[][], numDays: number): ItineraryDay[] {
-  const schedule: Array<{ place: TouristPlace; placeDay: number }> = [];
-  for (const cluster of clusters) {
-    for (const place of cluster) {
-      for (let d = 1; d <= Math.max(1, place.recommendedDays); d++) {
-        schedule.push({ place, placeDay: d });
-      }
+// ─── TRIP-TYPE-AWARE DAY NOTE BUILDERS ───────────────────────────────────────
+
+function buildArrivalNote(place: TouristPlace, tripType: ItineraryOptions['tripType']): string {
+  const n = place.name;
+  switch (tripType) {
+    case 'honeymoon':
+      return `Arrive at ${n} and settle into your retreat. Freshen up and head for a sunset walk together — your escape begins here. 🌅`;
+    case 'pilgrimage':
+      return `Arrive at ${n}. Check in and rest before the evening prayer or aarti. Begin your journey with a calm, reflective mind.`;
+    case 'family':
+      return `Arrive at ${n}. Let everyone settle in — a gentle stroll or the nearest park is the perfect easy first evening.`;
+    case 'solo':
+      return `Arrive at ${n}. Drop your bags, say hello to fellow travellers at the hostel, and take a solo wander to get your bearings. The city is yours.`;
+    case 'friends':
+      return `You've made it to ${n}! Check in, freshen up, and kick off the trip with a group dinner — find the best local food street tonight. 🎉`;
+    default:
+      return `Arrive at ${n}. Check in and spend the evening at leisure — explore the area and acclimatize.`;
+  }
+}
+
+function buildTransitionNote(from: TouristPlace, to: TouristPlace, tripType: ItineraryOptions['tripType']): string {
+  const interState = from.state !== to.state;
+  const base = interState
+    ? `Travel from ${from.name} to ${to.name} — an inter-state journey. `
+    : `Travel from ${from.name} to ${to.name}. `;
+  switch (tripType) {
+    case 'honeymoon':
+      return base + `A travel day is still a date — pack snacks, plan a scenic stop, and enjoy the journey together.`;
+    case 'pilgrimage':
+      return base + `Travel with gratitude — each leg brings you closer. Arrive, settle, and rest for tomorrow's darshan.`;
+    case 'family':
+      return base + `Let the kids window-watch and snack — travel days are adventures too. Keep the evening light after check-in.`;
+    case 'solo':
+      return base + `A great day to journal, listen to music, and reflect on the last stop before diving into the next.`;
+    case 'friends':
+      return base + `Road-trip energy guaranteed! Arrive, freshen up, and hit the streets for a first-night exploration.`;
+    default:
+      return base + `Arrive and check in. Take the rest of the day to settle in and explore nearby.`;
+  }
+}
+
+function buildExplorationNote(place: TouristPlace, dayInPlace: number, totalDaysHere: number, tripType: ItineraryOptions['tripType']): string {
+  const activities = place.highlights.slice((dayInPlace - 1) * 2, (dayInPlace - 1) * 2 + 2);
+  const isLastDay = dayInPlace === totalDaysHere && totalDaysHere > 1;
+
+  const base = activities.length > 0
+    ? `Day ${dayInPlace} at ${place.name} — explore ${activities.join(' and ')}`
+    : `Day ${dayInPlace} at ${place.name} — continue discovering local highlights and hidden gems`;
+
+  if (isLastDay) {
+    switch (tripType) {
+      case 'honeymoon':
+        return base + `. Your last evening here — book a candlelit dinner or rooftop experience. 💫`;
+      case 'pilgrimage':
+        return base + `. Final day at this sacred site — attend the morning prayers and offer your last respects before departing.`;
+      case 'family':
+        return base + `. Last day here — let the kids pick one activity. Pack bags in the evening for the next leg.`;
+      case 'solo':
+        return base + `. Last day here — catch anything you missed and write a few thoughts before moving on.`;
+      case 'friends':
+        return base + `. Last day together here — do the one thing you haven't done yet. Pack up and prep for tomorrow.`;
+      default:
+        return base + `. Last full day here — use it to visit anything you may have missed.`;
     }
   }
+  return base + '.';
+}
 
-  if (schedule.length === 0) return [];
+// ─── DAY DISTRIBUTION ────────────────────────────────────────────────────────
+// Distributes numDays across places proportionally to recommendedDays.
+// Guarantees each place gets ≥1 day; expands / compresses to hit numDays exactly.
+// Unlike the old schedule-index approach, this never repeats the same day note.
 
-  const days: ItineraryDay[] = [];
+function distributeIntodays(clusters: TouristPlace[][], numDays: number, options: ItineraryOptions): ItineraryDay[] {
+  const allPlaces = clusters.flat();
+  if (allPlaces.length === 0) return [];
 
-  for (let dayIndex = 1; dayIndex <= numDays; dayIndex++) {
-    const scheduleIndex = Math.min(
-      Math.floor(((dayIndex - 1) / numDays) * schedule.length),
-      schedule.length - 1
-    );
-    const { place, placeDay } = schedule[scheduleIndex];
-    const prevDay = days[days.length - 1];
-    const prevPlace = prevDay?.places[0];
+  // Start from each place's recommendedDays (minimum 1)
+  const daysPerPlace = allPlaces.map(p => Math.max(1, p.recommendedDays));
+  let totalAssigned = daysPerPlace.reduce((s, d) => s + d, 0);
 
-    let travelNote: string;
-    let travelCost = 0;
-
-    if (dayIndex === 1) {
-      travelNote = `Arrive at ${place.name}. Check-in and evening at leisure to acclimatize.`;
-    } else if (prevPlace && prevPlace.id !== place.id) {
-      if (prevPlace.state !== place.state) {
-        travelNote = `Travel from ${prevPlace.name} (${formatState(prevPlace.state)}) to ${place.name} (${formatState(place.state)}). Inter-state travel day.`;
-      } else {
-        travelNote = `Travel from ${prevPlace.name} to ${place.name}. Check-in and settle in.`;
-      }
-    } else {
-      const activities = place.highlights.slice((placeDay - 1) * 2, (placeDay - 1) * 2 + 2);
-      travelNote = activities.length > 0
-        ? `Day ${placeDay} in ${place.name} — explore ${activities.join(' and ')}.`
-        : `Day ${placeDay} in ${place.name}. Continue exploring nearby attractions.`;
+  // Expand: give extra days to the place that can best absorb them
+  while (totalAssigned < numDays) {
+    let bestIdx = 0, bestScore = -Infinity;
+    for (let i = 0; i < allPlaces.length; i++) {
+      const score = allPlaces[i].recommendedDays - daysPerPlace[i] * 0.6;
+      if (score > bestScore) { bestScore = score; bestIdx = i; }
     }
+    daysPerPlace[bestIdx]++;
+    totalAssigned++;
+  }
 
-    days.push({ day: dayIndex, places: [place], travelNote, estimatedTravelCost: travelCost });
+  // Compress: trim days from places with the most excess first (keep ≥1 each)
+  while (totalAssigned > numDays) {
+    let worstIdx = -1, worstExcess = -Infinity;
+    for (let i = 0; i < allPlaces.length; i++) {
+      if (daysPerPlace[i] <= 1) continue;
+      const excess = daysPerPlace[i] - allPlaces[i].recommendedDays;
+      if (excess > worstExcess) { worstExcess = excess; worstIdx = i; }
+    }
+    if (worstIdx < 0) break;
+    daysPerPlace[worstIdx]--;
+    totalAssigned--;
+  }
+
+  // Build day-by-day entries with trip-type-aware notes
+  const days: ItineraryDay[] = [];
+  let dayNum = 1;
+
+  for (let pi = 0; pi < allPlaces.length; pi++) {
+    const place = allPlaces[pi];
+    const prevPlace = pi > 0 ? allPlaces[pi - 1] : null;
+    const daysHere = daysPerPlace[pi];
+
+    for (let d = 1; d <= daysHere; d++) {
+      let travelNote: string;
+
+      if (dayNum === 1) {
+        travelNote = buildArrivalNote(place, options.tripType);
+      } else if (d === 1 && prevPlace) {
+        travelNote = buildTransitionNote(prevPlace, place, options.tripType);
+      } else {
+        travelNote = buildExplorationNote(place, d, daysHere, options.tripType);
+      }
+
+      days.push({ day: dayNum, places: [place], travelNote, estimatedTravelCost: 0 });
+      dayNum++;
+    }
   }
 
   return days;
@@ -435,7 +521,18 @@ function buildTips(places: TouristPlace[], options: ItineraryOptions, totalDista
     if (t) push(t);
   }
 
-  // 5. Origin-aware
+  // 5. Trip-type specific
+  const TRIP_TYPE_TIPS: Partial<Record<ItineraryOptions['tripType'], string>> = {
+    honeymoon: 'Book couple-specific experiences 2–3 weeks ahead — private houseboat cabins, rooftop dinners, and sunset cruises sell out fast in peak season.',
+    pilgrimage: 'Carry a government-issued photo ID, ₹2,000 cash for offerings/prasad, and wear modest easy-to-remove footwear — temple dress codes are strictly enforced.',
+    family: 'Children under 5 enter most ASI monuments and national park safaris free — carry their birth certificate or Aadhaar for age verification at entry points.',
+    solo: 'Share your daily plan with someone back home each morning — stay at hostels (Zostel, The Hosteller) for a built-in safety net and social circle on the road.',
+    friends: 'Use Splitwise or Google Pay group expenses from day one — group travel always generates shared costs and a few awkward conversations if untracked.',
+  };
+  const typeT = TRIP_TYPE_TIPS[options.tripType];
+  if (typeT) push(typeT);
+
+  // 6. Origin-aware
   const origin = getOriginById(options.originCityId);
   if (origin) {
     for (const r of ORIGIN_LATITUDE_TIPS) {
@@ -443,7 +540,7 @@ function buildTips(places: TouristPlace[], options: ItineraryOptions, totalDista
     }
   }
 
-  // 6. Always-relevant fallback (only if we somehow have <3 tips)
+  // 7. Always-relevant fallback (only if we somehow have <3 tips)
   if (out.length < 3) {
     push('Carry a power bank, a copy of your government photo ID (digital + printed), and ₹2–3,000 in cash — UPI works almost everywhere but rural fuel pumps & temples often need cash.');
   }
@@ -466,7 +563,7 @@ export function getRecommendedDays(places: TouristPlace[]): number {
 export function generateItinerary(places: TouristPlace[], options: ItineraryOptions): Itinerary {
   const origin = getOriginById(options.originCityId);
   const clusters = clusterPlaces(places, origin);
-  const days = distributeIntodays(clusters, options.numDays);
+  const days = distributeIntodays(clusters, options.numDays, options);
   const routePlaces: TouristPlace[] = [];
   const seen = new Set<string>();
   for (const d of days) {
