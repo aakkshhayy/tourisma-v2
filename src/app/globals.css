@@ -49,6 +49,24 @@
   }
 }
 
+/* Scrolling marquee animations */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee-reverse {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.animate-marquee         { animation: marquee         32s linear infinite; }
+.animate-marquee-reverse { animation: marquee-reverse 38s linear infinite; }
+.animate-marquee:hover,
+.animate-marquee-reverse:hover { animation-play-state: paused; }
+
+/* Hide scrollbar utility */
+.scrollbar-hide { scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
 /* Print stylesheet — used when users hit Ctrl/Cmd+P or click "Save as PDF" */
 @media print {
   @page { margin: 1.2cm; }

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight } from 'lucide-react';
+import { Compass, ArrowRight, Sparkles, Map, Calendar, Shield, ChevronRight, Zap, Route, BookmarkCheck } from 'lucide-react';
 import { PLACES, getStateById } from '@/lib/places';
 import { ORIGIN_CITIES } from '@/lib/origins';
 import { CIRCUITS } from '@/lib/circuits';
@@ -38,6 +38,17 @@ function getRouteImage(routeTo: string): { src?: string; placeId?: string } {
 }
 
 const ANIMATED_WORDS = ['India Trip', 'Weekend Getaway', 'Adventure', 'Himalayan Trek', 'Beach Escape'];
+
+// Photo marquee rows — diverse destinations for visual showcase
+const MARQUEE_ROW_1 = ['la_leh', 'an_havelock', 'rj_jaisalmer', 'kl_munnar', 'hp_manali', 'ka_hampi', 'sk_gangtok', 'wb_darjeeling'];
+const MARQUEE_ROW_2 = ['up_varanasi', 'uk_rishikesh', 'tn_ooty', 'ka_coorg', 'up_agra', 'rj_udaipur', 'jk_srinagar', 'la_pangong'];
+
+const STATS = [
+  { value: '185+', label: 'Destinations' },
+  { value: '29', label: 'States' },
+  { value: '7', label: 'Trip styles' },
+  { value: '100%', label: 'Free to use' },
+];
 
 // month 1=Jan…12=Dec
 const SEASONAL_ROUTES: Record<number, { from: string; to: string; emoji: string; duration: string; description: string }[]> = {
@@ -150,22 +161,31 @@ function getPopularRoutes() {
 
 const FEATURES = [
   {
-    icon: Sparkles,
+    icon: Zap,
     title: 'AI-Powered Planning',
-    description: 'Smart algorithms cluster places geographically and build optimised day-by-day schedules from your home city.',
+    description: 'Smart algorithms cluster places geographically and build optimised day-by-day itineraries from your home city in seconds.',
     gradient: 'from-orange-500 to-amber-400',
+    tag: 'Instant',
+    stat: '< 3 sec',
+    statLabel: 'to generate',
   },
   {
-    icon: Map,
+    icon: Route,
     title: 'Real Routes & Costs',
-    description: 'Compare train, bus, cab and flight options per leg. All-inclusive cost estimates for your group size.',
+    description: 'Train, bus, cab, flight — every leg compared. All-in cost estimate per person for your group size and budget.',
     gradient: 'from-blue-500 to-cyan-400',
+    tag: 'Accurate',
+    stat: '4 modes',
+    statLabel: 'of transport',
   },
   {
-    icon: Calendar,
+    icon: BookmarkCheck,
     title: 'Save & Share',
-    description: 'Save your itineraries, download as text, or share with friends. Your trips, accessible anywhere.',
+    description: 'Save to your account, print as PDF, or share a link with your travel group. Your itinerary lives online.',
     gradient: 'from-violet-500 to-purple-400',
+    tag: 'Effortless',
+    stat: '1 click',
+    statLabel: 'to share',
   },
 ];
 
@@ -190,7 +210,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#0A0A0B]">
       {/* Hero */}
-      <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden pb-64">
         {/* Animated gradient background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0B] via-[#0d0d10] to-[#0A0A0B]" />
@@ -264,6 +284,51 @@ export default function Home() {
           </motion.div>
         </div>
 
+        {/* Photo marquee — full-width, below the wizard */}
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.8 }}
+          className="absolute bottom-0 left-0 right-0 pb-8 overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_12%,black_88%,transparent_100%)]">
+          <div className="flex gap-3 mb-3 animate-marquee" style={{ width: 'max-content' }}>
+            {[...MARQUEE_ROW_1, ...MARQUEE_ROW_1].map((id, i) => {
+              const img = getPlaceImage(id);
+              return img ? (
+                <div key={i} className="relative flex-shrink-0 w-36 h-24 rounded-2xl overflow-hidden ring-1 ring-white/10">
+                  <Image src={img} alt={id} fill sizes="144px" className="object-cover" />
+                  <div className="absolute inset-0 bg-black/20" />
+                </div>
+              ) : null;
+            })}
+          </div>
+          <div className="flex gap-3 animate-marquee-reverse" style={{ width: 'max-content' }}>
+            {[...MARQUEE_ROW_2, ...MARQUEE_ROW_2].map((id, i) => {
+              const img = getPlaceImage(id);
+              return img ? (
+                <div key={i} className="relative flex-shrink-0 w-36 h-24 rounded-2xl overflow-hidden ring-1 ring-white/10">
+                  <Image src={img} alt={id} fill sizes="144px" className="object-cover" />
+                  <div className="absolute inset-0 bg-black/20" />
+                </div>
+              ) : null;
+            })}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Stats bar */}
+      <section className="border-y border-white/5 bg-[#0d0d10] py-8 px-4">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8">
+          {STATS.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }} viewport={{ once: true }}
+              className="text-center">
+              <div className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 bg-clip-text text-transparent leading-none mb-1">
+                {s.value}
+              </div>
+              <div className="text-white/40 text-xs font-semibold uppercase tracking-widest">{s.label}</div>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* Popular Routes */}
@@ -382,13 +447,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why Tourisma */}
+      {/* Why Tourisma — bento grid */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0d0d10]">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }} viewport={{ once: true }}
-            className="text-center mb-16">
+            className="text-center mb-14">
             <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">Why Tourisma</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white">
               Plan smarter,{' '}
@@ -398,23 +463,50 @@ export default function Home() {
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {FEATURES.map((feat, i) => {
               const Icon = feat.icon;
+              const isFirst = i === 0;
               return (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  transition={{ duration: 0.4, delay: i * 0.12 }}
                   viewport={{ once: true }}
-                  className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 overflow-hidden hover:border-white/20 transition-all">
-                  <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${feat.gradient}`} />
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center mb-6 shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" strokeWidth={2.2} />
+                  className={`relative bg-[#111113] border border-[#222226] rounded-2xl overflow-hidden group hover:border-white/20 transition-all ${isFirst ? 'md:col-span-2' : ''}`}>
+                  {/* Gradient accent top bar */}
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r ${feat.gradient} opacity-60`} />
+                  {/* Ambient glow behind icon */}
+                  <div className={`absolute top-0 ${isFirst ? 'right-0' : 'left-0'} w-48 h-48 bg-gradient-to-br ${feat.gradient} opacity-[0.07] blur-[60px] rounded-full`} />
+
+                  <div className={`relative p-8 ${isFirst ? 'sm:p-10' : ''}`}>
+                    {/* Tag */}
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-6 bg-gradient-to-r ${feat.gradient} bg-opacity-10`}
+                      style={{ background: 'rgba(249,115,22,0.1)', color: '#fb923c' }}>
+                      {feat.tag}
+                    </span>
+
+                    <div className={`flex ${isFirst ? 'sm:flex-row flex-col' : 'flex-col'} gap-8`}>
+                      <div className="flex-1">
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center mb-5 shadow-lg`}>
+                          <Icon className="w-6 h-6 text-white" strokeWidth={2.2} />
+                        </div>
+                        <h3 className={`font-extrabold text-white mb-3 ${isFirst ? 'text-2xl' : 'text-xl'}`}>{feat.title}</h3>
+                        <p className="text-white/50 text-sm leading-relaxed">{feat.description}</p>
+                      </div>
+
+                      {/* Stat pill */}
+                      <div className={`flex-shrink-0 flex ${isFirst ? 'sm:flex-col sm:items-end items-start' : 'flex-row items-center gap-2 pt-2'} justify-start`}>
+                        <div className={`bg-white/5 border border-white/10 rounded-2xl ${isFirst ? 'px-6 py-4' : 'px-4 py-3'} text-center`}>
+                          <div className={`font-extrabold bg-gradient-to-r ${feat.gradient} bg-clip-text text-transparent ${isFirst ? 'text-3xl' : 'text-2xl'}`}>
+                            {feat.stat}
+                          </div>
+                          <div className="text-white/30 text-[11px] font-semibold mt-0.5 whitespace-nowrap">{feat.statLabel}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{feat.title}</h3>
-                  <p className="text-white/50 text-sm leading-relaxed">{feat.description}</p>
                 </motion.div>
               );
             })}
